@@ -112,11 +112,15 @@ RC(2,0) RC(2,1) RC(2,2) RC(2,3) RC(2,4) RC(2,5)  RC(2,6)  RC(2,7) RC(2,8) RC(2,9
 	};
 };
 
-/* RGB WS2812 on D1 = P0.06 — 6 underglow + 21 per-key */
+/* RGB WS2812 on D1 = P0.06 — 6 underglow + 21 per-key.
+ * High-drive MOSI helps 3.3V MCU → first 5V LED; later LEDs regenerate DO.
+ * If only the first N LEDs light, check DO→DI solder/trace after LED N.
+ */
 &pinctrl {
 	spi3_default: spi3_default {
 		group1 {
 			psels = <NRF_PSEL(SPIM_MOSI, 0, 6)>;
+			nordic,drive-mode = <NRF_DRIVE_H0H1>;
 		};
 	};
 
