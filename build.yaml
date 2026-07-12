@@ -1,25 +1,37 @@
-# GitHub Actions build matrix
+# Recovery / diagnostic build matrix
 #
-# Flash order when left half shows NICENANO on every single RESET:
-#   1) Flash settings_reset.uf2
-#   2) When copy finishes: UNPLUG USB for 10+ seconds (do NOT press RESET)
-#   3) Plug USB back in
-#   4) Flash stock_corne_left.uf2 (or stock_corne_left_v1.uf2 if nano is v1)
-#   5) Again: unplug 10s, plug in, NO reset — check OS for "CorneStock" keyboard
-#   6) If stock works → corne_v3_left_bare → corne_v3_left
+# If stock Corne also shows nothing after power-cycle, the MCU is not
+# running apps (bootloader OK, application path broken or PCB short).
+#
+# Test procedure:
+#   A) Remove nice!nano from the Corne PCB, disconnect battery
+#   B) Flash tester_pro_micro.uf2 — should appear as "ZMK Tester" keyboard
+#   C) If A+B fail → reflash Adafruit bootloader (see PR / agent notes)
+#   D) If tester works off-board but fails on-board → short on Corne PCB
 ---
 include:
   - board: nice_nano@2.0.0//zmk
     shield: settings_reset
     artifact-name: settings_reset
 
+  # Upstream pin tester: USB HID only, BLE off, no split/I2C/OLED
+  - board: nice_nano@2.0.0//zmk
+    shield: tester_pro_micro
+    artifact-name: tester_pro_micro
+
+  - board: nice_nano@1.0.0//zmk
+    shield: tester_pro_micro
+    artifact-name: tester_pro_micro_v1
+
+  # Same tester with USB console (COM/serial port if app starts)
+  - board: nice_nano@2.0.0//zmk
+    shield: tester_pro_micro
+    cmake-args: -DCONFIG_ZMK_USB_LOGGING=y
+    artifact-name: tester_pro_micro_logging
+
   - board: nice_nano@2.0.0//zmk
     shield: corne_left
     artifact-name: stock_corne_left
-
-  - board: nice_nano@1.0.0//zmk
-    shield: corne_left
-    artifact-name: stock_corne_left_v1
 
   - board: nice_nano@2.0.0//zmk
     shield: corne_v3_left_bare
