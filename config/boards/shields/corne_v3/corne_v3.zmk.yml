@@ -1,6 +1,6 @@
 file_format: "1"
-id: corne
-name: CORNE
+id: corne_v3
+name: Corne V3 (PAT912x + OLED)
 type: shield
 url: https://github.com/MNSerg/zmk-for-keys
 requires: [pro_micro]
@@ -11,5 +11,6 @@ features:
   - underglow
   - pointing
 siblings:
-  - corne_left
-  - corne_right
+  - corne_v3_left
+  - corne_v3_left_bare
+  - corne_v3_right

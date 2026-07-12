@@ -1,21 +1,34 @@
-# GitHub Actions build matrix for Corne v3 (nice!nano v2)
+# GitHub Actions build matrix
 #
-# corne_left       — full: OLED + RGB + pointing + USB/BLE (no Studio)
-# corne_left_basic — bring-up: keys + USB/BLE only (no OLED/RGB/Studio)
-# corne_right      — PAT912x trackball peripheral
-# settings_reset   — clear bonds / settings
+# Flash order when left half shows NICENANO on every single RESET:
+#   1) Flash settings_reset.uf2
+#   2) When copy finishes: UNPLUG USB for 10+ seconds (do NOT press RESET)
+#   3) Plug USB back in
+#   4) Flash stock_corne_left.uf2 (or stock_corne_left_v1.uf2 if nano is v1)
+#   5) Again: unplug 10s, plug in, NO reset — check OS for "CorneStock" keyboard
+#   6) If stock works → corne_v3_left_bare → corne_v3_left
 ---
 include:
   - board: nice_nano@2.0.0//zmk
-    shield: corne_left
-    artifact-name: corne_left
-  - board: nice_nano@2.0.0//zmk
-    shield: corne_left
-    cmake-args: -DCONFIG_ZMK_DISPLAY=n -DCONFIG_ZMK_RGB_UNDERGLOW=n -DCONFIG_ZMK_STUDIO=n
-    artifact-name: corne_left_basic
-  - board: nice_nano@2.0.0//zmk
-    shield: corne_right
-    artifact-name: corne_right
-  - board: nice_nano@2.0.0//zmk
     shield: settings_reset
     artifact-name: settings_reset
+
+  - board: nice_nano@2.0.0//zmk
+    shield: corne_left
+    artifact-name: stock_corne_left
+
+  - board: nice_nano@1.0.0//zmk
+    shield: corne_left
+    artifact-name: stock_corne_left_v1
+
+  - board: nice_nano@2.0.0//zmk
+    shield: corne_v3_left_bare
+    artifact-name: corne_v3_left_bare
+
+  - board: nice_nano@2.0.0//zmk
+    shield: corne_v3_left
+    artifact-name: corne_v3_left
+
+  - board: nice_nano@2.0.0//zmk
+    shield: corne_v3_right
+    artifact-name: corne_v3_right

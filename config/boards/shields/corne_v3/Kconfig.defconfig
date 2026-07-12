@@ -1,7 +1,7 @@
 # Copyright (c) 2020 Pete Johanson
 # SPDX-License-Identifier: MIT
 
-if SHIELD_CORNE_LEFT
+if SHIELD_CORNE_V3_LEFT
 
 config ZMK_KEYBOARD_NAME
 	default "Corne"
@@ -11,13 +11,14 @@ config ZMK_SPLIT_ROLE_CENTRAL
 
 endif
 
-if SHIELD_CORNE_LEFT || SHIELD_CORNE_RIGHT
+if SHIELD_CORNE_V3_LEFT || SHIELD_CORNE_V3_RIGHT
 
 config ZMK_SPLIT
 	default y
 
 config ZMK_POINTING
 	default y
+
 
 if ZMK_DISPLAY
 
@@ -48,7 +49,7 @@ endif # LVGL
 
 endif
 
-if SHIELD_CORNE_RIGHT
+if SHIELD_CORNE_V3_RIGHT
 
 config I2C
 	default y

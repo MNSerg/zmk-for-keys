@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include "corne.dtsi"
+#include "corne_v3.dtsi"
 #include <input/processors.dtsi>
 
 &kscan0 {

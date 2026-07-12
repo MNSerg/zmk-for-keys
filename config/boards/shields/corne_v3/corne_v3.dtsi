@@ -7,7 +7,7 @@
 #include <dt-bindings/led/led.h>
 #include <dt-bindings/zmk/matrix_transform.h>
 #include <zephyr/dt-bindings/input/input-event-codes.h>
-#include "corne-layouts.dtsi"
+#include "corne_v3-layouts.dtsi"
 
 / {
 	chosen {
