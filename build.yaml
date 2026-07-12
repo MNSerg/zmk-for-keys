@@ -23,12 +23,6 @@ include:
     shield: tester_pro_micro
     artifact-name: tester_pro_micro_v1
 
-  # Same tester with USB console (COM/serial port if app starts)
-  - board: nice_nano@2.0.0//zmk
-    shield: tester_pro_micro
-    cmake-args: -DCONFIG_ZMK_USB_LOGGING=y
-    artifact-name: tester_pro_micro_logging
-
   - board: nice_nano@2.0.0//zmk
     shield: corne_left
     artifact-name: stock_corne_left
