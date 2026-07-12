@@ -59,6 +59,8 @@
 / {
 	trackball_buttons: trackball_buttons {
 		compatible = "gpio-keys";
+		status = "okay";
+		debounce-interval-ms = <20>;
 		trackball_btn {
 			gpios = <&pro_micro 10 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
 			zephyr,code = <INPUT_BTN_LEFT>;
