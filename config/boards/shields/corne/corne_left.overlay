@@ -18,6 +18,11 @@
 		;
 };
 
+/* Give EXT_POWER time before OLED/RGB on VCC come up */
+&EXT_POWER {
+	init-delay-ms = <200>;
+};
+
 /* Central side: enable listeners for trackball events from the right half */
 &trackball_listener {
 	status = "okay";
@@ -33,14 +38,4 @@
 
 &trackball_btn_listener {
 	status = "okay";
-};
-
-/ {
-	/* Status LED on D9 / P1.06 */
-	leds {
-		compatible = "gpio-leds";
-		status_led: led_0 {
-			gpios = <&pro_micro 9 GPIO_ACTIVE_HIGH>;
-		};
-	};
 };

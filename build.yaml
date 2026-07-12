@@ -1,14 +1,18 @@
 # GitHub Actions build matrix for Corne v3 (nice!nano v2)
-# Left: OLED SSD1306 + central (USB+BLE) + ZMK Studio
-# Right: PAT912x trackball peripheral
-# Also builds settings_reset for clearing bonds
+#
+# corne_left       — full: OLED + RGB + pointing + USB/BLE (no Studio)
+# corne_left_basic — bring-up: keys + USB/BLE only (no OLED/RGB/Studio)
+# corne_right      — PAT912x trackball peripheral
+# settings_reset   — clear bonds / settings
 ---
 include:
   - board: nice_nano@2.0.0//zmk
     shield: corne_left
-    snippet: studio-rpc-usb-uart
-    cmake-args: -DCONFIG_ZMK_STUDIO=y
     artifact-name: corne_left
+  - board: nice_nano@2.0.0//zmk
+    shield: corne_left
+    cmake-args: -DCONFIG_ZMK_DISPLAY=n -DCONFIG_ZMK_RGB_UNDERGLOW=n -DCONFIG_ZMK_STUDIO=n
+    artifact-name: corne_left_basic
   - board: nice_nano@2.0.0//zmk
     shield: corne_right
     artifact-name: corne_right
