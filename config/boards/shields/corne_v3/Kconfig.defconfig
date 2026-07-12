@@ -28,6 +28,10 @@ config I2C
 config SSD1306
 	default y
 
+choice ZMK_DISPLAY_STATUS_SCREEN
+	default ZMK_DISPLAY_STATUS_SCREEN_CUSTOM
+endchoice
+
 endif # ZMK_DISPLAY
 
 if LVGL
