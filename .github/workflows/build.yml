@@ -4,6 +4,13 @@ on:
   push:
     paths:
       - "config/**"
+      - "build.yaml"
+      - ".github/workflows/build.yml"
+  pull_request:
+    paths:
+      - "config/**"
+      - "build.yaml"
+      - ".github/workflows/build.yml"
 
 jobs:
   build:

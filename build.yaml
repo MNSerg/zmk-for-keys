@@ -1,28 +1,17 @@
-# This file generates the GitHub Actions matrix
-# For simple board + shield combinations, add them
-# to the top level board and shield arrays, for more
-# control, add individual board + shield combinations to
-# the `include` property, e.g:
-#
-# board: [ "nice_nano_v2" ]
-# shield: [ "corne_left", "corne_right" ]
-# include:
-#   - board: bdn9_rev2
-#   - board: nice_nano_v2
-#     shield: reviung41
-#
+# GitHub Actions build matrix for Corne v3 (nice!nano v2)
+# Left: OLED SSD1306 + central (USB+BLE) + ZMK Studio
+# Right: PAT912x trackball peripheral
+# Also builds settings_reset for clearing bonds
 ---
 include:
-  - board: nice_nano_v2 
-    shield: corne_left nice_oled
+  - board: nice_nano@2.0.0//zmk
+    shield: corne_left
     snippet: studio-rpc-usb-uart
-  - board: nice_nano_v2
-    shield: corne_right nice_oled
-  
-  - board: nice_nano_v2
-    shield: corne_left nice_view_adapter nice_view_custom
-    snippet: studio-rpc-usb-uart
-  - board: nice_nano_v2
-    shield: corne_right nice_view_adapter nice_view_custom
-  - board: nice_nano_v2
+    cmake-args: -DCONFIG_ZMK_STUDIO=y
+    artifact-name: corne_left
+  - board: nice_nano@2.0.0//zmk
+    shield: corne_right
+    artifact-name: corne_right
+  - board: nice_nano@2.0.0//zmk
     shield: settings_reset
+    artifact-name: settings_reset

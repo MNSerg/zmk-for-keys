@@ -11,21 +11,73 @@
 };
 
 &kscan0 {
-    col-gpios
-        = <&pro_micro 14  GPIO_ACTIVE_HIGH>
-        , <&pro_micro 15  GPIO_ACTIVE_HIGH>
-        , <&pro_micro 18  GPIO_ACTIVE_HIGH>
-        , <&pro_micro 19  GPIO_ACTIVE_HIGH>
-        , <&pro_micro 20  GPIO_ACTIVE_HIGH>
-        , <&pro_micro 21  GPIO_ACTIVE_HIGH>
-        ;
+	col-gpios
+		= <&pro_micro 14 GPIO_ACTIVE_HIGH>
+		, <&pro_micro 15 GPIO_ACTIVE_HIGH>
+		, <&pro_micro 18 GPIO_ACTIVE_HIGH>
+		, <&pro_micro 19 GPIO_ACTIVE_HIGH>
+		, <&pro_micro 20 GPIO_ACTIVE_HIGH>
+		, <&pro_micro 21 GPIO_ACTIVE_HIGH>
+		;
 };
-/ {
-    chosen {
-      zmk,battery = &vbatt;
-    };
 
-    vbatt: vbatt {
-        compatible = "zmk,battery-nrf-vddh";
-    };
+/* OLED is only on the left half */
+&oled {
+	status = "disabled";
+};
+
+/*
+ * PAT912x trackball on right half:
+ *   I2C D2/D3 (shared bus), addr 0x75
+ *   MOTION D8, BTN D10
+ *   CPI 800, invert flags from pinout
+ */
+&pro_micro_i2c {
+	trackball: trackball@75 {
+		compatible = "pixart,pat912x";
+		reg = <0x75>;
+		status = "okay";
+
+		motion-gpios = <&pro_micro 8 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+
+		res-x-cpi = <800>;
+		res-y-cpi = <800>;
+
+		zephyr,axis-x = <INPUT_REL_X>;
+		zephyr,axis-y = <INPUT_REL_Y>;
+
+		/* TRACKBALL_INVERT_X/Y = False in pinout */
+		/* invert-x; */
+		/* invert-y; */
+
+		sleep1-enable;
+		sleep2-enable;
+	};
+};
+
+/* Physical trackball click button on D10 */
+/ {
+	trackball_buttons: trackball_buttons {
+		compatible = "gpio-keys";
+		trackball_btn {
+			gpios = <&pro_micro 10 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
+			zephyr,code = <INPUT_BTN_LEFT>;
+		};
+	};
+
+	/* Status LED on D9 / P1.06 */
+	leds {
+		compatible = "gpio-leds";
+		status_led: led_0 {
+			gpios = <&pro_micro 9 GPIO_ACTIVE_HIGH>;
+		};
+	};
+};
+
+&trackball_split {
+	device = <&trackball>;
+};
+
+&trackball_btn_split {
+	device = <&trackball_buttons>;
 };

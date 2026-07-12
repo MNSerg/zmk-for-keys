@@ -5,9 +5,10 @@
  */
 
 #include "corne.dtsi"
+#include <input/processors.dtsi>
 
 &kscan0 {
-    col-gpios
+	col-gpios
 		= <&pro_micro 21 GPIO_ACTIVE_HIGH>
 		, <&pro_micro 20 GPIO_ACTIVE_HIGH>
 		, <&pro_micro 19 GPIO_ACTIVE_HIGH>
@@ -16,12 +17,30 @@
 		, <&pro_micro 14 GPIO_ACTIVE_HIGH>
 		;
 };
-/ {
-    chosen {
-      zmk,battery = &vbatt;
-    };
 
-    vbatt: vbatt {
-        compatible = "zmk,battery-nrf-vddh";
-    };
+/* Central side: enable listeners for trackball events from the right half */
+&trackball_listener {
+	status = "okay";
+	/* SCALE_DIVISOR = 2 from pinout */
+	input-processors = <&zip_xy_scaler 1 2>;
+
+	/* Layer 2 (raise): trackball scrolls */
+	scroll {
+		layers = <2>;
+		input-processors = <&zip_xy_to_scroll_mapper>;
+	};
+};
+
+&trackball_btn_listener {
+	status = "okay";
+};
+
+/ {
+	/* Status LED on D9 / P1.06 */
+	leds {
+		compatible = "gpio-leds";
+		status_led: led_0 {
+			gpios = <&pro_micro 9 GPIO_ACTIVE_HIGH>;
+		};
+	};
 };
