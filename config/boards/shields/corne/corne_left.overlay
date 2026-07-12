@@ -19,7 +19,7 @@
 };
 
 /* Give EXT_POWER time before OLED/RGB on VCC come up */
-&EXT_POWER {
+&{/EXT_POWER} {
 	init-delay-ms = <200>;
 };
 
