@@ -23,7 +23,6 @@
 		;
 };
 
-/* OLED is only on the left half */
 &oled {
 	status = "disabled";
 };
@@ -34,42 +33,39 @@
 	};
 };
 
-/* Trackball on VCC — settle before PAT912x I2C probe */
 &{/EXT_POWER} {
 	init-delay-ms = <1000>;
 };
 
 /*
- * PAT912x trackball (right):
- *   I2C D2/SDA + D3/SCL, power on VCC
- *   Polling driver — MOTION on D8 optional (connect if available)
- *   Probes 0x75 / 0x73 / 0x79 (ID_SEL)
+ * Module pin order (typical): VCC, SCL, SDA, MOTION, GND
+ *   VCC  -> nice!nano VCC (3.3V only — NOT RAW/5V)
+ *   SCL  -> D3
+ *   SDA  -> D2
+ *   MOTION ignored (stuck at 0 V on this hardware — poll deltas only)
+ *   GND  -> GND
  */
 &pro_micro_i2c {
 	status = "okay";
+	clock-frequency = <100000>;
 
 	trackball: trackball@75 {
 		compatible = "corne,pat912x-poll";
 		reg = <0x75>;
 		status = "okay";
 
-		/* Optional — improves latency if wired to D8 */
-		motion-gpios = <&pro_micro 8 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
-
-		poll-interval-ms = <8>;
+		poll-interval-ms = <5>;
 		res-x-cpi = <1000>;
 		res-y-cpi = <1000>;
 
 		zephyr,axis-x = <INPUT_REL_X>;
 		zephyr,axis-y = <INPUT_REL_Y>;
 
-		/* Some modules don't return stock product id 0x3191 */
 		ignore-product-id;
 	};
 };
 
 &trackball_split {
 	device = <&trackball>;
-	/* Many Corne mounts need XY swap; remove if axes feel wrong */
 	input-processors = <&zip_xy_transform INPUT_TRANSFORM_XY_SWAP>;
 };

@@ -2,8 +2,10 @@
  * Copyright (c) 2026 The ZMK Contributors
  * SPDX-License-Identifier: MIT
  *
- * PAT9125EL input driver that polls over I2C so MOTION GPIO is optional.
- * Also probes ID_SEL address variants: 0x75 (low), 0x73 (high), 0x79 (NC).
+ * PAT9125EL polling input driver.
+ * - Does NOT use MOTION GPIO (many modules hold MOTION at 0 V permanently)
+ * - Always reads delta registers (does not require MOTION_STATUS bit)
+ * - Probes I2C 0x75 / 0x73 / 0x79 (ID_SEL Low / High / NC)
  */
 
 #define DT_DRV_COMPAT corne_pat912x_poll
@@ -20,8 +22,6 @@
 LOG_MODULE_REGISTER(pat912x_poll, CONFIG_INPUT_LOG_LEVEL);
 
 #define PAT912X_PRODUCT_ID1   0x00
-#define PAT912X_PRODUCT_ID2   0x01
-#define PAT912X_MOTION_STATUS 0x02
 #define PAT912X_DELTA_X_LO    0x03
 #define PAT912X_DELTA_Y_LO    0x04
 #define PAT912X_CONFIGURATION 0x06
@@ -34,14 +34,11 @@ LOG_MODULE_REGISTER(pat912x_poll, CONFIG_INPUT_LOG_LEVEL);
 #define CONFIGURATION_RESET   0x97
 #define CONFIGURATION_CLEAR   0x17
 #define WRITE_PROTECT_DISABLE 0x5a
-#define MOTION_STATUS_MOTION  BIT(7)
 #define RES_SCALING_FACTOR    5
 #define PAT912X_DATA_SIZE_BITS 12
 
 struct pat912x_poll_config {
 	struct i2c_dt_spec i2c;
-	struct gpio_dt_spec motion_gpio;
-	bool has_motion_gpio;
 	uint16_t poll_interval_ms;
 	int32_t axis_x;
 	int32_t axis_y;
@@ -54,10 +51,9 @@ struct pat912x_poll_config {
 
 struct pat912x_poll_data {
 	const struct device *dev;
-	struct i2c_dt_spec i2c; /* may override address after probe */
+	struct i2c_dt_spec i2c;
 	struct k_timer poll_timer;
 	struct k_work poll_work;
-	struct gpio_callback motion_cb;
 	bool ready;
 };
 
@@ -65,13 +61,21 @@ static int pat912x_write(struct pat912x_poll_data *data, uint8_t reg, uint8_t va
 	return i2c_reg_write_byte_dt(&data->i2c, reg, val);
 }
 
-static int pat912x_read(struct pat912x_poll_data *data, uint8_t reg, uint8_t *val) {
-	return i2c_reg_read_byte_dt(&data->i2c, reg, val);
-}
-
 static int pat912x_burst_read(struct pat912x_poll_data *data, uint8_t reg, uint8_t *buf,
 			      size_t len) {
 	return i2c_burst_read_dt(&data->i2c, reg, buf, len);
+}
+
+static void pat912x_status_led(bool on) {
+#if DT_NODE_HAS_STATUS(DT_NODELABEL(blue_led), okay)
+	const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(DT_NODELABEL(blue_led), gpios);
+	if (gpio_is_ready_dt(&led)) {
+		gpio_pin_configure_dt(&led, GPIO_OUTPUT_INACTIVE);
+		gpio_pin_set_dt(&led, on ? 1 : 0);
+	}
+#else
+	ARG_UNUSED(on);
+#endif
 }
 
 static int pat912x_configure_chip(struct pat912x_poll_data *data) {
@@ -95,7 +99,6 @@ static int pat912x_configure_chip(struct pat912x_poll_data *data) {
 		LOG_INF("PAT9125EL ok @0x%02x", data->i2c.addr);
 	}
 
-	/* Software reset — device NACKs, ignore result */
 	(void)pat912x_write(data, PAT912X_CONFIGURATION, CONFIGURATION_RESET);
 	k_msleep(2);
 
@@ -130,7 +133,6 @@ static int pat912x_probe_address(struct pat912x_poll_data *data, uint16_t addr) 
 static void pat912x_poll_work_handler(struct k_work *work) {
 	struct pat912x_poll_data *data = CONTAINER_OF(work, struct pat912x_poll_data, poll_work);
 	const struct pat912x_poll_config *cfg = data->dev->config;
-	uint8_t status;
 	uint8_t xy[2];
 	uint8_t hi;
 	int32_t x, y;
@@ -140,16 +142,15 @@ static void pat912x_poll_work_handler(struct k_work *work) {
 		return;
 	}
 
-	ret = pat912x_read(data, PAT912X_MOTION_STATUS, &status);
-	if (ret < 0 || (status & MOTION_STATUS_MOTION) == 0) {
-		return;
-	}
-
+	/*
+	 * Always read deltas. MOTION pin / MOTION_STATUS are unreliable on some
+	 * modules (MOTION stuck at 0 V); deltas still update when the ball moves.
+	 */
 	ret = pat912x_burst_read(data, PAT912X_DELTA_X_LO, xy, sizeof(xy));
 	if (ret < 0) {
 		return;
 	}
-	ret = pat912x_read(data, PAT912X_DELTA_XY_HI, &hi);
+	ret = i2c_reg_read_byte_dt(&data->i2c, PAT912X_DELTA_XY_HI, &hi);
 	if (ret < 0) {
 		return;
 	}
@@ -186,13 +187,6 @@ static void pat912x_poll_timer_handler(struct k_timer *timer) {
 	k_work_submit(&data->poll_work);
 }
 
-static void pat912x_motion_isr(const struct device *port, struct gpio_callback *cb, uint32_t pins) {
-	ARG_UNUSED(port);
-	ARG_UNUSED(pins);
-	struct pat912x_poll_data *data = CONTAINER_OF(cb, struct pat912x_poll_data, motion_cb);
-	k_work_submit(&data->poll_work);
-}
-
 static int pat912x_poll_init(const struct device *dev) {
 	const struct pat912x_poll_config *cfg = dev->config;
 	struct pat912x_poll_data *data = dev->data;
@@ -206,10 +200,10 @@ static int pat912x_poll_init(const struct device *dev) {
 
 	if (!i2c_is_ready_dt(&cfg->i2c)) {
 		LOG_ERR("I2C bus not ready");
+		pat912x_status_led(false);
 		return -ENODEV;
 	}
 
-	/* Prefer DT address, then ID_SEL variants */
 	uint16_t try_order[4];
 	size_t n = 0;
 	try_order[n++] = cfg->i2c.addr;
@@ -236,38 +230,29 @@ static int pat912x_poll_init(const struct device *dev) {
 	}
 
 	if (!found) {
-		LOG_ERR("PAT912x not found on I2C (tried 0x75/0x73/0x79) — check wiring/power");
+		LOG_ERR("PAT912x not found on I2C (0x75/0x73/0x79) — check 3.3V VCC, SDA/SCL, GND");
+		/* LED off = probe failed */
+		pat912x_status_led(false);
 		return -ENODEV;
 	}
 
 	k_work_init(&data->poll_work, pat912x_poll_work_handler);
 	k_timer_init(&data->poll_timer, pat912x_poll_timer_handler, NULL);
 
-	if (cfg->has_motion_gpio) {
-		if (!gpio_is_ready_dt(&cfg->motion_gpio)) {
-			LOG_WRN("motion-gpios not ready — polling only");
-		} else if (gpio_pin_configure_dt(&cfg->motion_gpio, GPIO_INPUT) == 0 &&
-			   gpio_pin_interrupt_configure_dt(&cfg->motion_gpio, GPIO_INT_EDGE_TO_ACTIVE) ==
-				   0) {
-			gpio_init_callback(&data->motion_cb, pat912x_motion_isr,
-					   BIT(cfg->motion_gpio.pin));
-			gpio_add_callback_dt(&cfg->motion_gpio, &data->motion_cb);
-			LOG_INF("MOTION GPIO enabled (plus poll)");
-		}
-	}
-
 	data->ready = true;
 	k_timer_start(&data->poll_timer, K_MSEC(cfg->poll_interval_ms),
 		      K_MSEC(cfg->poll_interval_ms));
-	LOG_INF("polling every %u ms", cfg->poll_interval_ms);
+
+	/* LED on = sensor probed OK */
+	pat912x_status_led(true);
+	LOG_INF("polling every %u ms @0x%02x (no MOTION GPIO)", cfg->poll_interval_ms,
+		data->i2c.addr);
 	return 0;
 }
 
 #define PAT912X_POLL_INIT(n)                                                                       \
 	static const struct pat912x_poll_config pat912x_poll_cfg_##n = {                           \
 		.i2c = I2C_DT_SPEC_INST_GET(n),                                                    \
-		.motion_gpio = GPIO_DT_SPEC_INST_GET_OR(n, motion_gpios, {0}),                     \
-		.has_motion_gpio = DT_INST_NODE_HAS_PROP(n, motion_gpios),                         \
 		.poll_interval_ms = DT_INST_PROP(n, poll_interval_ms),                             \
 		.axis_x = DT_INST_PROP_OR(n, zephyr_axis_x, -1),                                   \
 		.axis_y = DT_INST_PROP_OR(n, zephyr_axis_y, -1),                                   \

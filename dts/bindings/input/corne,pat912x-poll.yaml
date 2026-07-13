@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: MIT
 
 description: |
-  PAT9125EL trackball with software polling (MOTION GPIO optional).
+  PAT9125EL trackball with software polling.
+  MOTION GPIO is not used (often stuck low on modules).
   Probes I2C addresses 0x75 / 0x73 / 0x79 (ID_SEL Low / High / NC).
 
 compatible: "corne,pat912x-poll"
@@ -10,10 +11,6 @@ compatible: "corne,pat912x-poll"
 include: i2c-device.yaml
 
 properties:
-  motion-gpios:
-    type: phandle-array
-    description: Optional MOTION pin (active low). Polling works without it.
-
   poll-interval-ms:
     type: int
     default: 8
@@ -21,21 +18,17 @@ properties:
 
   zephyr,axis-x:
     type: int
-    description: INPUT_REL_* code for X, or omit to disable.
 
   zephyr,axis-y:
     type: int
-    description: INPUT_REL_* code for Y, or omit to disable.
 
   res-x-cpi:
     type: int
     default: 1000
-    description: CPI for X (0..1275, step 5).
 
   res-y-cpi:
     type: int
     default: 1000
-    description: CPI for Y (0..1275, step 5).
 
   invert-x:
     type: boolean
@@ -45,4 +38,4 @@ properties:
 
   ignore-product-id:
     type: boolean
-    description: Continue if product id is not 0x3191 (some modules).
+    description: Continue if product id is not 0x3191.
