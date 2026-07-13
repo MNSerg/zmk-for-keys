@@ -2,10 +2,9 @@
  * Copyright (c) 2026 The ZMK Contributors
  * SPDX-License-Identifier: MIT
  *
- * PAT9125EL polling input driver.
- * - Does NOT use MOTION GPIO (many modules hold MOTION at 0 V permanently)
- * - Always reads delta registers (does not require MOTION_STATUS bit)
- * - Probes I2C 0x75 / 0x73 / 0x79 (ID_SEL Low / High / NC)
+ * PAT9125EL polling driver with Prusa/PixArt tracking-optimization init.
+ * MOTION GPIO ignored (often stuck at 0 V). Blue LED: solid=probe OK,
+ * blink=nonzero delta. Optional diag-nudge injects cursor motion to test HID path.
  */
 
 #define DT_DRV_COMPAT corne_pat912x_poll
@@ -21,29 +20,29 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(pat912x_poll, CONFIG_INPUT_LOG_LEVEL);
 
-#define PAT912X_PRODUCT_ID1   0x00
-#define PAT912X_DELTA_X_LO    0x03
-#define PAT912X_DELTA_Y_LO    0x04
-#define PAT912X_CONFIGURATION 0x06
-#define PAT912X_WRITE_PROTECT 0x09
-#define PAT912X_RES_X         0x0d
-#define PAT912X_RES_Y         0x0e
-#define PAT912X_DELTA_XY_HI   0x12
+#define PAT9125_PID1            0x00
+#define PAT9125_PID2            0x01
+#define PAT9125_MOTION          0x02
+#define PAT9125_DELTA_XL        0x03
+#define PAT9125_DELTA_YL        0x04
+#define PAT9125_CONFIG          0x06
+#define PAT9125_WP              0x09
+#define PAT9125_RES_X           0x0d
+#define PAT9125_RES_Y           0x0e
+#define PAT9125_DELTA_XYH       0x12
+#define PAT9125_ORIENTATION     0x19
+#define PAT9125_BANK            0x7f
 
-#define PRODUCT_ID_PAT9125EL  0x3191
-#define CONFIGURATION_RESET   0x97
-#define CONFIGURATION_CLEAR   0x17
-#define WRITE_PROTECT_DISABLE 0x5a
-#define RES_SCALING_FACTOR    5
-#define PAT912X_DATA_SIZE_BITS 12
+#define PRODUCT_ID_PAT9125EL    0x3191
 
 struct pat912x_poll_config {
 	struct i2c_dt_spec i2c;
 	uint16_t poll_interval_ms;
+	uint16_t diag_nudge_ms;
 	int32_t axis_x;
 	int32_t axis_y;
-	int16_t res_x_cpi;
-	int16_t res_y_cpi;
+	uint8_t res_x;
+	uint8_t res_y;
 	bool invert_x;
 	bool invert_y;
 	bool ignore_product_id;
@@ -54,19 +53,21 @@ struct pat912x_poll_data {
 	struct i2c_dt_spec i2c;
 	struct k_timer poll_timer;
 	struct k_work poll_work;
+	uint32_t nudge_ticks;
+	uint32_t tick;
 	bool ready;
+	bool led_on;
 };
 
-static int pat912x_write(struct pat912x_poll_data *data, uint8_t reg, uint8_t val) {
+static int wr(struct pat912x_poll_data *data, uint8_t reg, uint8_t val) {
 	return i2c_reg_write_byte_dt(&data->i2c, reg, val);
 }
 
-static int pat912x_burst_read(struct pat912x_poll_data *data, uint8_t reg, uint8_t *buf,
-			      size_t len) {
-	return i2c_burst_read_dt(&data->i2c, reg, buf, len);
+static int rd(struct pat912x_poll_data *data, uint8_t reg, uint8_t *val) {
+	return i2c_reg_read_byte_dt(&data->i2c, reg, val);
 }
 
-static void pat912x_status_led(bool on) {
+static void led_set(bool on) {
 #if DT_NODE_HAS_STATUS(DT_NODELABEL(blue_led), okay)
 	const struct gpio_dt_spec led = GPIO_DT_SPEC_GET(DT_NODELABEL(blue_led), gpios);
 	if (gpio_is_ready_dt(&led)) {
@@ -78,89 +79,117 @@ static void pat912x_status_led(bool on) {
 #endif
 }
 
-static int pat912x_configure_chip(struct pat912x_poll_data *data) {
+static void led_pulse(struct pat912x_poll_data *data) {
+	data->led_on = !data->led_on;
+	led_set(data->led_on);
+}
+
+/* PixArt AN / Prusa bank0 tracking optimization (after reset, already in bank0) */
+static const uint8_t init_bank0[] = {
+	PAT9125_WP, 0x5a,
+	/* RES filled at runtime */
+	/* ORIENTATION filled at runtime */
+	0x5e, 0x08,
+	0x20, 0x64,
+	0x2b, 0x6d,
+	0x32, 0x2f,
+};
+
+static const uint8_t init_bank1[] = {
+	0x06, 0x28, 0x33, 0xd0, 0x36, 0xc2, 0x3e, 0x01, 0x3f, 0x15, 0x41, 0x32, 0x42, 0x3b,
+	0x43, 0xf2, 0x44, 0x3b, 0x45, 0xf2, 0x46, 0x22, 0x47, 0x3b, 0x48, 0xf2, 0x49, 0x3b,
+	0x4a, 0xf0, 0x58, 0x98, 0x59, 0x0c, 0x5a, 0x08, 0x5b, 0x0c, 0x5c, 0x08, 0x61, 0x10,
+	0x67, 0x9b, 0x6e, 0x22, 0x71, 0x07, 0x72, 0x08,
+};
+
+static int wr_seq(struct pat912x_poll_data *data, const uint8_t *seq, size_t len) {
+	for (size_t i = 0; i + 1 < len; i += 2) {
+		int ret = wr(data, seq[i], seq[i + 1]);
+		if (ret < 0) {
+			return ret;
+		}
+		k_msleep(1);
+	}
+	return 0;
+}
+
+static int pat912x_full_init(struct pat912x_poll_data *data) {
 	const struct pat912x_poll_config *cfg = data->dev->config;
 	uint8_t id[2];
 	int ret;
 
-	ret = pat912x_burst_read(data, PAT912X_PRODUCT_ID1, id, sizeof(id));
+	/* Bank 0 */
+	(void)wr(data, PAT9125_BANK, 0x00);
+
+	ret = i2c_burst_read_dt(&data->i2c, PAT9125_PID1, id, sizeof(id));
 	if (ret < 0) {
 		return ret;
 	}
 
 	uint16_t pid = sys_get_be16(id);
 	if (pid != PRODUCT_ID_PAT9125EL) {
-		LOG_WRN("product id %04x (expected %04x) @0x%02x", pid, PRODUCT_ID_PAT9125EL,
-			data->i2c.addr);
+		LOG_WRN("product id %04x @0x%02x", pid, data->i2c.addr);
 		if (!cfg->ignore_product_id) {
 			return -ENOTSUP;
 		}
 	} else {
-		LOG_INF("PAT9125EL ok @0x%02x", data->i2c.addr);
+		LOG_INF("PAT9125EL @0x%02x", data->i2c.addr);
 	}
 
-	(void)pat912x_write(data, PAT912X_CONFIGURATION, CONFIGURATION_RESET);
+	/* Software reset */
+	(void)wr(data, PAT9125_CONFIG, 0x97);
 	k_msleep(2);
 
-	ret = pat912x_write(data, PAT912X_CONFIGURATION, CONFIGURATION_CLEAR);
+	(void)wr(data, PAT9125_BANK, 0x00);
+	(void)wr(data, PAT9125_WP, 0x5a);
+	k_msleep(1);
+
+	ret = wr(data, PAT9125_RES_X, cfg->res_x);
+	if (ret < 0) {
+		return ret;
+	}
+	ret = wr(data, PAT9125_RES_Y, cfg->res_y);
+	if (ret < 0) {
+		return ret;
+	}
+	/* Bit2 = 12-bit delta format (required for XYH nibble merge) */
+	ret = wr(data, PAT9125_ORIENTATION, 0x04);
 	if (ret < 0) {
 		return ret;
 	}
 
-	(void)pat912x_write(data, PAT912X_WRITE_PROTECT, WRITE_PROTECT_DISABLE);
+	ret = wr_seq(data, init_bank0, sizeof(init_bank0));
+	if (ret < 0) {
+		return ret;
+	}
+	k_msleep(10);
 
-	if (cfg->res_x_cpi >= 0) {
-		ret = pat912x_write(data, PAT912X_RES_X, cfg->res_x_cpi / RES_SCALING_FACTOR);
-		if (ret < 0) {
-			return ret;
-		}
+	(void)wr(data, PAT9125_BANK, 0x01);
+	ret = wr_seq(data, init_bank1, sizeof(init_bank1));
+	if (ret < 0) {
+		return ret;
 	}
-	if (cfg->res_y_cpi >= 0) {
-		ret = pat912x_write(data, PAT912X_RES_Y, cfg->res_y_cpi / RES_SCALING_FACTOR);
-		if (ret < 0) {
-			return ret;
-		}
-	}
+
+	(void)wr(data, PAT9125_BANK, 0x00);
+	(void)wr(data, PAT9125_WP, 0x00);
+
+	/* Clear any pending motion */
+	uint8_t discard;
+	(void)rd(data, PAT9125_MOTION, &discard);
+	(void)rd(data, PAT9125_DELTA_XL, &discard);
+	(void)rd(data, PAT9125_DELTA_YL, &discard);
+	(void)rd(data, PAT9125_DELTA_XYH, &discard);
 
 	return 0;
 }
 
 static int pat912x_probe_address(struct pat912x_poll_data *data, uint16_t addr) {
 	data->i2c.addr = addr;
-	return pat912x_configure_chip(data);
+	return pat912x_full_init(data);
 }
 
-static void pat912x_poll_work_handler(struct k_work *work) {
-	struct pat912x_poll_data *data = CONTAINER_OF(work, struct pat912x_poll_data, poll_work);
+static void report_xy(struct pat912x_poll_data *data, int32_t x, int32_t y) {
 	const struct pat912x_poll_config *cfg = data->dev->config;
-	uint8_t xy[2];
-	uint8_t hi;
-	int32_t x, y;
-	int ret;
-
-	if (!data->ready) {
-		return;
-	}
-
-	/*
-	 * Always read deltas. MOTION pin / MOTION_STATUS are unreliable on some
-	 * modules (MOTION stuck at 0 V); deltas still update when the ball moves.
-	 */
-	ret = pat912x_burst_read(data, PAT912X_DELTA_X_LO, xy, sizeof(xy));
-	if (ret < 0) {
-		return;
-	}
-	ret = i2c_reg_read_byte_dt(&data->i2c, PAT912X_DELTA_XY_HI, &hi);
-	if (ret < 0) {
-		return;
-	}
-
-	x = xy[0];
-	y = xy[1];
-	y |= (hi << 8) & 0xf00;
-	x |= (hi << 4) & 0xf00;
-	x = sign_extend(x, PAT912X_DATA_SIZE_BITS - 1);
-	y = sign_extend(y, PAT912X_DATA_SIZE_BITS - 1);
 
 	if (cfg->invert_x) {
 		x = -x;
@@ -168,18 +197,71 @@ static void pat912x_poll_work_handler(struct k_work *work) {
 	if (cfg->invert_y) {
 		y = -y;
 	}
-
 	if (x == 0 && y == 0) {
 		return;
 	}
 
+	led_pulse(data);
+
 	if (cfg->axis_x >= 0) {
 		bool sync = cfg->axis_y < 0;
-		input_report_rel(data->dev, cfg->axis_x, x, sync, K_NO_WAIT);
+		input_report_rel(data->dev, cfg->axis_x, x, sync, K_MSEC(20));
 	}
 	if (cfg->axis_y >= 0) {
-		input_report_rel(data->dev, cfg->axis_y, y, true, K_NO_WAIT);
+		input_report_rel(data->dev, cfg->axis_y, y, true, K_MSEC(20));
 	}
+}
+
+static void pat912x_poll_work_handler(struct k_work *work) {
+	struct pat912x_poll_data *data = CONTAINER_OF(work, struct pat912x_poll_data, poll_work);
+	const struct pat912x_poll_config *cfg = data->dev->config;
+	uint8_t motion = 0;
+	uint8_t xl = 0, yl = 0, xyh = 0;
+	int32_t x, y;
+	int ret;
+
+	if (!data->ready) {
+		return;
+	}
+
+	data->tick++;
+
+	/* Periodic synthetic nudge — proves split→HID path if cursor drifts alone */
+	if (cfg->diag_nudge_ms > 0 && data->nudge_ticks > 0 &&
+	    (data->tick % data->nudge_ticks) == 0) {
+		report_xy(data, 8, 0);
+	}
+
+	ret = rd(data, PAT9125_MOTION, &motion);
+	if (ret < 0) {
+		return;
+	}
+	ARG_UNUSED(motion);
+
+	/* Always sample deltas (MOTION pad may be stuck; register bit may lag). */
+	ret = rd(data, PAT9125_DELTA_XL, &xl);
+	if (ret < 0) {
+		return;
+	}
+	ret = rd(data, PAT9125_DELTA_YL, &yl);
+	if (ret < 0) {
+		return;
+	}
+	ret = rd(data, PAT9125_DELTA_XYH, &xyh);
+	if (ret < 0) {
+		return;
+	}
+
+	x = xl | ((xyh << 4) & 0xf00);
+	y = yl | ((xyh << 8) & 0xf00);
+	if (x & 0x800) {
+		x -= 4096;
+	}
+	if (y & 0x800) {
+		y -= 4096;
+	}
+
+	report_xy(data, x, y);
 }
 
 static void pat912x_poll_timer_handler(struct k_timer *timer) {
@@ -191,16 +273,20 @@ static int pat912x_poll_init(const struct device *dev) {
 	const struct pat912x_poll_config *cfg = dev->config;
 	struct pat912x_poll_data *data = dev->data;
 	static const uint16_t alt_addrs[] = {0x75, 0x73, 0x79};
-	int ret;
 	bool found = false;
 
 	data->dev = dev;
 	data->i2c = cfg->i2c;
 	data->ready = false;
+	data->led_on = false;
+	data->tick = 0;
+	data->nudge_ticks = 0;
+	if (cfg->diag_nudge_ms > 0 && cfg->poll_interval_ms > 0) {
+		data->nudge_ticks = MAX(1u, cfg->diag_nudge_ms / cfg->poll_interval_ms);
+	}
 
 	if (!i2c_is_ready_dt(&cfg->i2c)) {
-		LOG_ERR("I2C bus not ready");
-		pat912x_status_led(false);
+		led_set(false);
 		return -ENODEV;
 	}
 
@@ -221,32 +307,28 @@ static int pat912x_poll_init(const struct device *dev) {
 	}
 
 	for (size_t i = 0; i < n; i++) {
-		ret = pat912x_probe_address(data, try_order[i]);
-		if (ret == 0) {
+		if (pat912x_probe_address(data, try_order[i]) == 0) {
 			found = true;
 			break;
 		}
-		LOG_DBG("probe 0x%02x failed (%d)", try_order[i], ret);
 	}
 
 	if (!found) {
-		LOG_ERR("PAT912x not found on I2C (0x75/0x73/0x79) — check 3.3V VCC, SDA/SCL, GND");
-		/* LED off = probe failed */
-		pat912x_status_led(false);
+		led_set(false);
+		LOG_ERR("PAT9125 init failed on all addresses");
 		return -ENODEV;
 	}
 
 	k_work_init(&data->poll_work, pat912x_poll_work_handler);
 	k_timer_init(&data->poll_timer, pat912x_poll_timer_handler, NULL);
-
 	data->ready = true;
+	data->led_on = true;
+	led_set(true);
 	k_timer_start(&data->poll_timer, K_MSEC(cfg->poll_interval_ms),
 		      K_MSEC(cfg->poll_interval_ms));
 
-	/* LED on = sensor probed OK */
-	pat912x_status_led(true);
-	LOG_INF("polling every %u ms @0x%02x (no MOTION GPIO)", cfg->poll_interval_ms,
-		data->i2c.addr);
+	LOG_INF("PAT9125 ready @0x%02x poll=%ums nudge=%ums", data->i2c.addr, cfg->poll_interval_ms,
+		cfg->diag_nudge_ms);
 	return 0;
 }
 
@@ -254,10 +336,11 @@ static int pat912x_poll_init(const struct device *dev) {
 	static const struct pat912x_poll_config pat912x_poll_cfg_##n = {                           \
 		.i2c = I2C_DT_SPEC_INST_GET(n),                                                    \
 		.poll_interval_ms = DT_INST_PROP(n, poll_interval_ms),                             \
+		.diag_nudge_ms = DT_INST_PROP_OR(n, diag_nudge_ms, 0),                             \
 		.axis_x = DT_INST_PROP_OR(n, zephyr_axis_x, -1),                                   \
 		.axis_y = DT_INST_PROP_OR(n, zephyr_axis_y, -1),                                   \
-		.res_x_cpi = DT_INST_PROP(n, res_x_cpi),                                           \
-		.res_y_cpi = DT_INST_PROP(n, res_y_cpi),                                           \
+		.res_x = DT_INST_PROP(n, res_x),                                                   \
+		.res_y = DT_INST_PROP(n, res_y),                                                   \
 		.invert_x = DT_INST_PROP(n, invert_x),                                             \
 		.invert_y = DT_INST_PROP(n, invert_y),                                             \
 		.ignore_product_id = DT_INST_PROP(n, ignore_product_id),                           \

@@ -6,7 +6,6 @@
 
 #include "corne_v3.dtsi"
 #include <input/processors.dtsi>
-#include <dt-bindings/zmk/input_transform.h>
 
 &default_transform {
 	col-offset = <6>;
@@ -38,12 +37,9 @@
 };
 
 /*
- * Module pin order (typical): VCC, SCL, SDA, MOTION, GND
- *   VCC  -> nice!nano VCC (3.3V only — NOT RAW/5V)
- *   SCL  -> D3
- *   SDA  -> D2
- *   MOTION ignored (stuck at 0 V on this hardware — poll deltas only)
- *   GND  -> GND
+ * Module: VCC(3.3V), SCL→D3, SDA→D2, MOTION unused, GND
+ * diag-nudge-ms: cursor should slowly drift without touching the ball.
+ * Blue LED blinks when real (or nudged) deltas are reported.
  */
 &pro_micro_i2c {
 	status = "okay";
@@ -55,8 +51,11 @@
 		status = "okay";
 
 		poll-interval-ms = <5>;
-		res-x-cpi = <1000>;
-		res-y-cpi = <1000>;
+		diag-nudge-ms = <1000>;
+
+		/* Raw register values ≈ 1000 CPI */
+		res-x = <0xbc>;
+		res-y = <0xbc>;
 
 		zephyr,axis-x = <INPUT_REL_X>;
 		zephyr,axis-y = <INPUT_REL_Y>;
@@ -67,5 +66,4 @@
 
 &trackball_split {
 	device = <&trackball>;
-	input-processors = <&zip_xy_transform INPUT_TRANSFORM_XY_SWAP>;
 };

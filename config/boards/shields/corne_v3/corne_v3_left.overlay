@@ -26,12 +26,5 @@
 /* Central side: enable listeners for trackball events from the right half */
 &trackball_listener {
 	status = "okay";
-	/* Speed up vs pinout ÷2 while validating cursor path (was 1 2) */
-	input-processors = <&zip_xy_scaler 2 1>;
-
-	/* Layer 2 (raise): trackball scrolls */
-	scroll {
-		layers = <2>;
-		input-processors = <&zip_xy_to_scroll_mapper>;
-	};
+	/* 1:1 while validating; restore zip_xy_scaler later if too fast */
 };
