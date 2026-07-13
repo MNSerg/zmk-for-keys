@@ -5,6 +5,8 @@
  */
 
 #include "corne_v3.dtsi"
+#include <input/processors.dtsi>
+#include <dt-bindings/zmk/input_transform.h>
 
 &default_transform {
 	col-offset = <6>;
@@ -43,6 +45,8 @@
  *   (no click button — D10 unused)
  */
 &pro_micro_i2c {
+	status = "okay";
+
 	trackball: trackball@75 {
 		compatible = "pixart,pat912x";
 		reg = <0x75>;
@@ -50,21 +54,21 @@
 
 		motion-gpios = <&pro_micro 8 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
 
-		res-x-cpi = <800>;
-		res-y-cpi = <800>;
+		/* Max useful CPI while bringing up; pinout listed 800 */
+		res-x-cpi = <1000>;
+		res-y-cpi = <1000>;
 
 		zephyr,axis-x = <INPUT_REL_X>;
 		zephyr,axis-y = <INPUT_REL_Y>;
 
-		/* TRACKBALL_INVERT_X/Y = False in pinout */
-		/* invert-x; */
-		/* invert-y; */
-
-		sleep1-enable;
-		sleep2-enable;
+		/* Sleep modes can leave MOTION quiet until wake — off for bring-up */
+		/* sleep1-enable; */
+		/* sleep2-enable; */
 	};
 };
 
 &trackball_split {
 	device = <&trackball>;
+	/* Many Corne trackball mounts need XY swap; remove if axes feel wrong */
+	input-processors = <&zip_xy_transform INPUT_TRANSFORM_XY_SWAP>;
 };
