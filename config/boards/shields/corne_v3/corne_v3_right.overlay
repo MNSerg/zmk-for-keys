@@ -40,35 +40,36 @@
 };
 
 /*
- * PAT912x trackball on right half:
- *   I2C D2/D3, addr 0x75, MOTION D8
- *   (no click button — D10 unused)
+ * PAT912x trackball (right):
+ *   I2C D2/SDA + D3/SCL, power on VCC
+ *   Polling driver — MOTION on D8 optional (connect if available)
+ *   Probes 0x75 / 0x73 / 0x79 (ID_SEL)
  */
 &pro_micro_i2c {
 	status = "okay";
 
 	trackball: trackball@75 {
-		compatible = "pixart,pat912x";
+		compatible = "corne,pat912x-poll";
 		reg = <0x75>;
 		status = "okay";
 
+		/* Optional — improves latency if wired to D8 */
 		motion-gpios = <&pro_micro 8 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
 
-		/* Max useful CPI while bringing up; pinout listed 800 */
+		poll-interval-ms = <8>;
 		res-x-cpi = <1000>;
 		res-y-cpi = <1000>;
 
 		zephyr,axis-x = <INPUT_REL_X>;
 		zephyr,axis-y = <INPUT_REL_Y>;
 
-		/* Sleep modes can leave MOTION quiet until wake — off for bring-up */
-		/* sleep1-enable; */
-		/* sleep2-enable; */
+		/* Some modules don't return stock product id 0x3191 */
+		ignore-product-id;
 	};
 };
 
 &trackball_split {
 	device = <&trackball>;
-	/* Many Corne trackball mounts need XY swap; remove if axes feel wrong */
+	/* Many Corne mounts need XY swap; remove if axes feel wrong */
 	input-processors = <&zip_xy_transform INPUT_TRANSFORM_XY_SWAP>;
 };

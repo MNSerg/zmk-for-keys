@@ -69,7 +69,7 @@ zmk-for-keys/
 | RGB Data (D1 / P0.06) | `corne_v3.dtsi` | `&spi3` / `led_strip`, `chain-length = <27>` |
 | I2C OLED/трекбол (D2/D3) | `corne_v3.dtsi` | `&pinctrl` i2c0, `&pro_micro_i2c` |
 | OLED 128×32 addr 0x3C | `corne_v3.dtsi` | `oled: ssd1306@3c` (включается на left) |
-| PAT912x addr 0x75 | `corne_v3_right.overlay` | датчик + motion GPIO + кнопка |
+| PAT912x (poll) | `corne_v3_right.overlay` + `pat912x_poll.c` | D2/D3 I2C, MOTION D8 optional, addr 0x75/73/79 |
 | Масштаб трекбола ÷2 | `corne_v3_left.overlay` | `zip_xy_scaler 1 2` |
 | Скролл трекбола на слое 2 | `corne_v3_left.overlay` | `scroll { layers = <2>; ... }` |
 
