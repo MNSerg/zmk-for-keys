@@ -45,3 +45,8 @@ include:
   - board: nice_nano@2.0.0//zmk
     shield: corne_v3_right_bare
     artifact-name: corne_v3_right_bare
+
+  # Right + PAT912x, no D10 button — bisect NFC/gpio-keys vs I2C sensor
+  - board: nice_nano@2.0.0//zmk
+    shield: corne_v3_right_nobtn
+    artifact-name: corne_v3_right_nobtn

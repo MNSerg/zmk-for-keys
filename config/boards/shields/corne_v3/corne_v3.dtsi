@@ -9,6 +9,14 @@
 #include <zephyr/dt-bindings/input/input-event-codes.h>
 #include "corne_v3-layouts.dtsi"
 
+/*
+ * D10 on nice!nano is P0.09 (NFC1). Trackball click uses it — Zephyr 4.x
+ * requires UICR nfct-pins-as-gpios (CONFIG_NFCT_PINS_AS_GPIOS was removed).
+ */
+&uicr {
+	nfct-pins-as-gpios;
+};
+
 / {
 	chosen {
 		zephyr,display = &oled;

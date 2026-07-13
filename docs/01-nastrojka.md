@@ -34,7 +34,8 @@ zmk-for-keys/
 |----------|----------------|
 | `corne_v3_left` | Левый nice!nano (central, OLED, Studio, связь с ПК) |
 | `corne_v3_right` | Правый nice!nano (peripheral, трекбол) |
-| `corne_v3_right_bare` | Правый без трекбола (если `R:OK`, но клавиши мёртвые) |
+| `corne_v3_right_bare` | Правый без трекбола (матрица OK — подтверждено) |
+| `corne_v3_right_nobtn` | Правый + PAT912x, без кнопки D10 (бисект NFC) |
 | `settings_reset` | Сброс BLE-пар / настроек (обе половины по очереди) |
 
 ---

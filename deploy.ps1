@@ -14,7 +14,7 @@
 [CmdletBinding(DefaultParameterSetName = "ByTarget")]
 param(
     [Parameter(Position = 0, ParameterSetName = "ByTarget")]
-    [ValidateSet("left", "right", "right_bare", "left_bare", "settings_reset")]
+    [ValidateSet("left", "right", "right_bare", "right_nobtn", "left_bare", "settings_reset")]
     [string]$Target = "left",
 
     [Parameter(Mandatory = $true, ParameterSetName = "ByFile")]
@@ -46,9 +46,10 @@ function Find-Uf2([string]$target, [string]$dir) {
 
     $filter = switch ($target) {
         "left" { { $_.Name -like "corne_v3_left*.uf2" -and $_.Name -notlike "corne_v3_left_bare*" } }
-        "right" { { $_.Name -like "corne_v3_right*.uf2" -and $_.Name -notlike "corne_v3_right_bare*" } }
+        "right" { { $_.Name -like "corne_v3_right*.uf2" -and $_.Name -notlike "corne_v3_right_bare*" -and $_.Name -notlike "corne_v3_right_nobtn*" } }
         "left_bare" { { $_.Name -like "corne_v3_left_bare*.uf2" } }
         "right_bare" { { $_.Name -like "corne_v3_right_bare*.uf2" } }
+        "right_nobtn" { { $_.Name -like "corne_v3_right_nobtn*.uf2" } }
         "settings_reset" { { $_.Name -like "settings_reset*.uf2" } }
     }
 
