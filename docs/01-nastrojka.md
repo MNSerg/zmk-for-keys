@@ -23,7 +23,7 @@ zmk-for-keys/
         ├── corne_v3_left.*    # Левая половина (central): OLED, слушатели трекбола
         ├── corne_v3_right.*   # Правая половина (peripheral): PAT912x
         ├── corne_v3_left_bare.* # Диагностика без OLED/RGB/pointing
-        ├── custom_status_screen.c # (отключён — ломал boot; сейчас built-in экран)
+        ├── custom_status_screen.c # built-in clone + R:OK (нужны LVGL fonts в .conf)
         └── CMakeLists.txt
 ```
 
@@ -84,7 +84,7 @@ zmk-for-keys/
 
 Боковые файлы:
 
-- `corne_v3_left.conf` — OLED, RGB, pointing, кастомный экран
+- `corne_v3_left.conf` — OLED (built-in), RGB, pointing
 - `corne_v3_right.conf` — RGB, pointing, **без** display
 
 ### 3.3. Раскладка — `config/corne_v3.keymap`
@@ -124,17 +124,19 @@ zmk-for-keys/
 | Что | Где |
 |-----|-----|
 | Драйвер / размер | `corne_v3.dtsi` → `ssd1306@3c` |
-| Кастомный экран | `custom_status_screen.c` |
-| Включение | `corne_v3_left.conf` → `CONFIG_ZMK_DISPLAY=y`, `…_STATUS_SCREEN_CUSTOM=y` |
+| Экран | `custom_status_screen.c` (клон built-in + `R:OK`) |
+| Включение | `corne_v3_left.conf` → `CONFIG_ZMK_DISPLAY_STATUS_SCREEN_CUSTOM=y` |
+
+**Важно:** `STATUS_SCREEN_CUSTOM` сам по себе **не** включает шрифты и `LV_Z_MEM_POOL_SIZE=4096` (это делает только `BUILT_IN`). Без них LVGL падает → белый шум OLED и мёртвый USB. В `corne_v3_left.conf` эти опции продублированы явно.
 
 На экране (128×32):
 
 | Угол | Содержание |
 |------|------------|
-| Верх слева | Выход на ПК: USB / BLE профиль |
-| Верх справа | Заряд левой (%) |
-| Низ слева | **`R:OK`** = правая подключена, **`R:--`** = нет |
-| Низ справа | **`L0 DEF`** — номер и имя активного слоя |
+| Верх слева | Выход на ПК: USB / BLE |
+| Верх справа | Заряд левой |
+| Низ слева | **`R:OK`** / **`R:--`** — связь с правой |
+| Низ справа | Слой (`DEF` / `LOW` / …) |
 
 ### 3.6. Split / BLE между половинами
 
@@ -173,7 +175,7 @@ revision: main   # Zephyr 4.x, нативный PAT912x
 | CPI / инверсия трекбола | right overlay (датчик) + left `zip_xy_scaler` |
 | Скролл трекбола на другом слое | `layers = <N>` в `corne_v3_left.overlay` |
 | Число RGB | `chain-length` в `corne_v3.dtsi` |
-| Текст/логика OLED | `custom_status_screen.c` |
+| Текст/логика OLED | встроенный экран; `display-name` в keymap |
 | Имя в Bluetooth | `CONFIG_ZMK_KEYBOARD_NAME` |
 | Включить ZMK Studio | `CONFIG_ZMK_STUDIO=y` (left) + пересборка |
 
