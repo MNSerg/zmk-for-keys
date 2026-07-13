@@ -84,7 +84,7 @@ zmk-for-keys/
 
 Боковые файлы:
 
-- `corne_v3_left.conf` — OLED (built-in), RGB, pointing
+- `corne_v3_left.conf` — OLED (custom + LVGL fonts), RGB, pointing
 - `corne_v3_right.conf` — RGB, pointing, **без** display
 
 ### 3.3. Раскладка — `config/corne_v3.keymap`
@@ -129,14 +129,14 @@ zmk-for-keys/
 
 **Важно:** `STATUS_SCREEN_CUSTOM` сам по себе **не** включает шрифты и `LV_Z_MEM_POOL_SIZE=4096` (это делает только `BUILT_IN`). Без них LVGL падает → белый шум OLED и мёртвый USB. В `corne_v3_left.conf` эти опции продублированы явно.
 
-На экране (128×32):
+На экране (128×32), ASCII (без LV_SYMBOL — они давали белые прямоугольники):
 
 | Угол | Содержание |
 |------|------------|
-| Верх слева | Выход на ПК: USB / BLE |
-| Верх справа | Заряд левой |
-| Низ слева | **`R:OK`** / **`R:--`** — связь с правой |
-| Низ справа | Слой (`DEF` / `LOW` / …) |
+| Верх слева | `USB` / `BT1` / `BT1?` / `BT1*` |
+| Верх справа | `NN%` или `CHG NN%` |
+| Низ слева | **`R:OK`** / **`R:--`** |
+| Низ справа | Слой (`DEF` / …), иконка клавиатуры |
 
 ### 3.6. Split / BLE между половинами
 
@@ -175,7 +175,7 @@ revision: main   # Zephyr 4.x, нативный PAT912x
 | CPI / инверсия трекбола | right overlay (датчик) + left `zip_xy_scaler` |
 | Скролл трекбола на другом слое | `layers = <N>` в `corne_v3_left.overlay` |
 | Число RGB | `chain-length` в `corne_v3.dtsi` |
-| Текст/логика OLED | встроенный экран; `display-name` в keymap |
+| Текст/логика OLED | `custom_status_screen.c` + LVGL opts в `corne_v3_left.conf` |
 | Имя в Bluetooth | `CONFIG_ZMK_KEYBOARD_NAME` |
 | Включить ZMK Studio | `CONFIG_ZMK_STUDIO=y` (left) + пересборка |
 
