@@ -80,12 +80,13 @@ zmk-for-keys/
 | `CONFIG_BT_CTLR_TX_PWR_PLUS_8` | Мощность BLE |
 | `CONFIG_ZMK_USB` / `CONFIG_ZMK_BLE` | Транспорты к ПК |
 | `CONFIG_ZMK_SLEEP` | Глубокий сон (сейчас выключен для отладки) |
-| `CONFIG_ZMK_STUDIO` | ZMK Studio по USB (сейчас **выключен**) |
+| `CONFIG_ZMK_STUDIO` | ZMK Studio (только left + snippet в `build.yaml`) |
 
 Боковые файлы:
 
-- `corne_v3_left.conf` — OLED (custom + LVGL fonts), RGB, pointing
-- `corne_v3_right.conf` — RGB, pointing, **без** display
+- `corne_v3_left.conf` — OLED (custom + LVGL fonts), RGB, pointing, **Studio**
+- `corne_v3_right.conf` — RGB, pointing, **без** display / Studio
+- `corne_v3_right_bare.conf` — RGB + матрица, **без** трекбола (диагностика)
 
 ### 3.3. Раскладка — `config/corne_v3.keymap`
 
@@ -162,6 +163,8 @@ revision: main   # Zephyr 4.x, нативный PAT912x
 
 Список UF2 в Actions. Для повседневной работы нужны `corne_v3_left` и `corne_v3_right`. Остальное — диагностика (`settings_reset`, `tester_*`, `*_bare`).
 
+`corne_v3_left` собирается со snippet **`studio-rpc-usb-uart`** и `-DCONFIG_ZMK_STUDIO=y`. `corne_v3_right_bare` — правая без трекбола, чтобы проверить матрицу.
+
 ---
 
 ## 4. Типовые правки «куда идти»
@@ -177,7 +180,7 @@ revision: main   # Zephyr 4.x, нативный PAT912x
 | Число RGB | `chain-length` в `corne_v3.dtsi` |
 | Текст/логика OLED | `custom_status_screen.c` + LVGL opts в `corne_v3_left.conf` |
 | Имя в Bluetooth | `CONFIG_ZMK_KEYBOARD_NAME` |
-| Включить ZMK Studio | `CONFIG_ZMK_STUDIO=y` (left) + пересборка |
+| ZMK Studio | Уже: snippet + `CONFIG_ZMK_STUDIO=y` на left; unlock на ADJ |
 
 ---
 

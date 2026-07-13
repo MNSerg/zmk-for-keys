@@ -33,8 +33,15 @@ include:
 
   - board: nice_nano@2.0.0//zmk
     shield: corne_v3_left
+    snippet: studio-rpc-usb-uart
+    cmake-args: -DCONFIG_ZMK_STUDIO=y
     artifact-name: corne_v3_left
 
   - board: nice_nano@2.0.0//zmk
     shield: corne_v3_right
     artifact-name: corne_v3_right
+
+  # Right without trackball — isolate matrix if keys don't work with full right
+  - board: nice_nano@2.0.0//zmk
+    shield: corne_v3_right_bare
+    artifact-name: corne_v3_right_bare

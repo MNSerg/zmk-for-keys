@@ -10,7 +10,9 @@ features:
   - display
   - underglow
   - pointing
+  - studio
 siblings:
   - corne_v3_left
   - corne_v3_left_bare
   - corne_v3_right
+  - corne_v3_right_bare

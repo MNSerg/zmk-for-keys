@@ -113,40 +113,26 @@ Home-row mods: короткое нажатие = буква, удержание 
 
 ## 6. Чем настраивать слои на ПК
 
-ZMK Studio в этой сборке **выключен** (`CONFIG_ZMK_STUDIO=n`), поэтому «живого» редактора по USB пока нет.
+### ZMK Studio (включено на левой половине)
 
-### Рекомендуемый путь (как устроена эта прошивка)
+1. Прошейте свежий `corne_v3_left` (сборка со snippet `studio-rpc-usb-uart`).
+2. Подключите **левую** по USB.
+3. Слой **ADJ** (`&mo 3`) → первая клавиша верхнего ряда: **`&studio_unlock`**.
+4. Откройте [zmk.studio](https://zmk.studio/) (Chrome/Edge) или native app → Connect по USB.
+5. Если клавиатура одновременно на USB и BLE — на ADJ выберите `&out OUT_USB`, иначе Studio может не отвечать.
 
-1. Открыть репозиторий на GitHub / локально.
-2. Править `config/corne_v3.keymap` (и дубликат в щите, если пользуетесь им).
-3. Push → дождаться Actions → прошить оба UF2 (или только left, если меняли только keymap/central).
+После правок в Studio дальнейшие изменения `.keymap` в git **не** применятся, пока в Studio не сделаете Restore Stock Settings.
 
-Визуальный редактор keymap-файла (без Studio):
+### Правка через git (без Studio)
 
-- [Keymap Editor (nickcoutsos)](https://nickcoutsos.github.io/keymap-editor/) — загружаете репозиторий/файл, правите слои графически, сохраняете `.keymap` обратно в git.
+1. Править `config/corne_v3.keymap` (и дубликат в щите).
+2. Push → Actions → прошить UF2.
 
-Документация по синтаксису:
-
-- [ZMK Keymap](https://zmk.dev/docs/keymaps)
-- [Behaviors](https://zmk.dev/docs/keymaps/behaviors)
-- [Bluetooth](https://zmk.dev/docs/features/bluetooth)
-
-### Если захотите ZMK Studio позже
-
-1. В `corne_v3_left.conf` / общем conf: `CONFIG_ZMK_STUDIO=y` (и при необходимости studio-транспорт).
-2. Пересобрать.
-3. Подключить левую по USB → [ZMK Studio](https://zmk.studio/) в браузере.
-
-Studio удобен для слоёв «на лету», но усложняет отладку boot — поэтому сейчас выключен.
+Визуальный редактор файла: [Keymap Editor](https://nickcoutsos.github.io/keymap-editor/).
 
 ### Что НЕ нужно
 
-- QMK Toolbox / VIA / Vial — это другой стек (QMK), к этой прошивке не подходит.
-- Отдельная утилита «только для ZMK слоёв» кроме Studio / keymap-editor / правки файла — по сути не требуется.
-
-Полезные дополнения на ПК (не обязательны):
-
-- [ZMK Battery Center](https://github.com/kot149/zmk-battery-center) — заряд split в трее (нужны флаги battery proxy/fetching).
+- QMK Toolbox / VIA / Vial — другой стек, к ZMK не подходит.
 
 ---
 
@@ -174,6 +160,17 @@ Studio удобен для слоёв «на лету», но усложняет
 3. Правая под питанием → через пару секунд **`R:OK`**; клавиша справа печатает.
 4. BLE на батарее → ПК видит Corne.
 5. (Опционально) трекбол / скролл на RAI.
+6. Studio: unlock на ADJ → Connect на zmk.studio.
+
+### Правая: `R:OK`, RGB есть, клавиши/трекбол мёртвые
+
+Матрица и пины в прошивке совпадают с `pinout nicenano.txt`. Дальше — изоляция:
+
+1. Прошить `settings_reset` на **обе** половины, затем снова left + right.
+2. Прошить **`corne_v3_right_bare`** (без трекбола/I2C):
+   - **Клавиши справа заработали** → виноват PAT912x/I2C (пайка D2/D3, addr 0x75, motion D8, питание VCC). Вернитесь на полный `corne_v3_right` после проверки железа.
+   - **Клавиши всё ещё мёртвые** → сокет nice!nano / диоды / дорожки колонок (14,15,18,19,20,21), не флаги split (связь уже есть — `R:OK`).
+3. Трекбол без курсора при живых клавишах: I2C и датчик; скролл только на слое **RAI**.
 
 ### Если снова «белый шум»
 

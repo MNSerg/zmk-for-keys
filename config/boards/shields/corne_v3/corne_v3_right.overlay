@@ -26,6 +26,17 @@
 	status = "disabled";
 };
 
+/ {
+	chosen {
+		/delete-property/ zephyr,display;
+	};
+};
+
+/* Trackball on VCC needs settle time before PAT912x I2C probe */
+&{/EXT_POWER} {
+	init-delay-ms = <500>;
+};
+
 /*
  * PAT912x trackball on right half:
  *   I2C D2/D3 (shared bus), addr 0x75
@@ -60,18 +71,10 @@
 	trackball_buttons: trackball_buttons {
 		compatible = "gpio-keys";
 		status = "okay";
-		debounce-interval-ms = <20>;
+		debounce-interval-ms = <5>;
 		trackball_btn {
 			gpios = <&pro_micro 10 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
 			zephyr,code = <INPUT_BTN_LEFT>;
-		};
-	};
-
-	/* Status LED on D9 / P1.06 */
-	leds {
-		compatible = "gpio-leds";
-		status_led: led_0 {
-			gpios = <&pro_micro 9 GPIO_ACTIVE_HIGH>;
 		};
 	};
 };

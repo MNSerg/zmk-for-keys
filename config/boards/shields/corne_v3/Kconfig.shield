@@ -5,4 +5,4 @@ config SHIELD_CORNE_V3_LEFT
 	def_bool $(shields_list_contains,corne_v3_left) || $(shields_list_contains,corne_v3_left_bare)
 
 config SHIELD_CORNE_V3_RIGHT
-	def_bool $(shields_list_contains,corne_v3_right)
+	def_bool $(shields_list_contains,corne_v3_right) || $(shields_list_contains,corne_v3_right_bare)

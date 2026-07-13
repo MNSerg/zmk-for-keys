@@ -13,6 +13,8 @@
 
 1. Дождитесь сборки **Build ZMK firmware** в GitHub Actions.
 2. Прошейте `corne_v3_left*.uf2` на левый nice!nano, `corne_v3_right*.uf2` на правый.
-3. На OLED слева: **`R:OK`** = правая на связи, **`L0 DEF`** = активный слой.
+3. На OLED слева: **`R:OK`** = правая на связи; слой = `DEF` / `LOW` / …
+4. ZMK Studio: USB → левая → ADJ → `&studio_unlock` → [zmk.studio](https://zmk.studio/).
+5. Если справа `R:OK` но клавиши мёртвые — сначала `corne_v3_right_bare` (см. docs).
 
 Пин-аут: [`pinout nicenano.txt`](pinout%20nicenano.txt).

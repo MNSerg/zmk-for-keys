@@ -1,0 +1,47 @@
+/*
+ * Right bare: matrix + RGB only. No PAT912x / gpio-keys / I2C.
+ * Use to verify split key positions without trackball side-effects.
+ */
+
+#include "corne_v3.dtsi"
+
+&default_transform {
+	col-offset = <6>;
+};
+
+&kscan0 {
+	col-gpios
+		= <&pro_micro 14 GPIO_ACTIVE_HIGH>
+		, <&pro_micro 15 GPIO_ACTIVE_HIGH>
+		, <&pro_micro 18 GPIO_ACTIVE_HIGH>
+		, <&pro_micro 19 GPIO_ACTIVE_HIGH>
+		, <&pro_micro 20 GPIO_ACTIVE_HIGH>
+		, <&pro_micro 21 GPIO_ACTIVE_HIGH>
+		;
+};
+
+&oled {
+	status = "disabled";
+};
+
+&pro_micro_i2c {
+	status = "disabled";
+};
+
+&trackball_split {
+	status = "disabled";
+};
+
+&trackball_btn_split {
+	status = "disabled";
+};
+
+/ {
+	chosen {
+		/delete-property/ zephyr,display;
+	};
+};
+
+&{/EXT_POWER} {
+	init-delay-ms = <200>;
+};
