@@ -35,7 +35,3 @@
 		input-processors = <&zip_xy_to_scroll_mapper>;
 	};
 };
-
-&trackball_btn_listener {
-	status = "okay";
-};

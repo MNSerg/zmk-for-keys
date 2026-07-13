@@ -34,14 +34,6 @@
 	status = "disabled";
 };
 
-&trackball_btn_listener {
-	status = "disabled";
-};
-
 &trackball_split {
-	status = "disabled";
-};
-
-&trackball_btn_split {
 	status = "disabled";
 };

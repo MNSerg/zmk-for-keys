@@ -16,13 +16,18 @@
 3. Дважды RESET на nice!nano → диск **F:** (NICENANO) → прошивка:
 
 ```powershell
-.\deploy.ps1 left          # левая
-.\deploy.ps1 right         # правая
-.\deploy.ps1 right_bare    # диагностика правой без трекбола
+.\deploy.ps1 left
+.\deploy.ps1 right
+.\deploy.ps1 right_bare
+.\deploy.ps1 left_bare
+.\deploy.ps1 left_nostudio
+.\deploy.ps1 settings_reset
 .\deploy.ps1 -Uf2 .\path\to\file.uf2
 ```
 
-4. На OLED слева: **`R:OK`** = правая на связи; слой = `DEF` / `LOW` / …
-5. ZMK Studio: USB → левая → ADJ → `&studio_unlock` → [zmk.studio](https://zmk.studio/).
+Если справа не печатает даже на `right_bare` — сначала `settings_reset` на **обе**, затем `left_bare` + `right_bare` (см. docs). Studio-keymap на left может «убить» правые позиции при живом `R:OK`.
+
+4. На OLED (полный left): **`R:OK`** = правая на связи.
+5. ZMK Studio: USB → left → ADJ → `&studio_unlock` → [zmk.studio](https://zmk.studio/).
 
 Пин-аут: [`pinout nicenano.txt`](pinout%20nicenano.txt).

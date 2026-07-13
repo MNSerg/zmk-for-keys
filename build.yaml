@@ -41,12 +41,13 @@ include:
     shield: corne_v3_right
     artifact-name: corne_v3_right
 
-  # Right without trackball — isolate matrix if keys don't work with full right
+  # Right without trackball — isolate matrix (pair with left_bare + settings_reset)
   - board: nice_nano@2.0.0//zmk
     shield: corne_v3_right_bare
     artifact-name: corne_v3_right_bare
 
-  # Right + PAT912x, no D10 button — bisect NFC/gpio-keys vs I2C sensor
+  # Left without Studio/OLED — if right keys work only with this, Studio settings on left are the culprit
   - board: nice_nano@2.0.0//zmk
-    shield: corne_v3_right_nobtn
-    artifact-name: corne_v3_right_nobtn
+    shield: corne_v3_left
+    cmake-args: -DCONFIG_ZMK_STUDIO=n
+    artifact-name: corne_v3_left_nostudio

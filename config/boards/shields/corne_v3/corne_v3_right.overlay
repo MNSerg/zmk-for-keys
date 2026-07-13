@@ -32,16 +32,15 @@
 	};
 };
 
-/* Trackball on VCC needs settle time before PAT912x I2C probe */
+/* Trackball on VCC — settle before PAT912x I2C probe */
 &{/EXT_POWER} {
 	init-delay-ms = <1000>;
 };
 
 /*
  * PAT912x trackball on right half:
- *   I2C D2/D3 (shared bus), addr 0x75
- *   MOTION D8, BTN D10
- *   CPI 800, invert flags from pinout
+ *   I2C D2/D3, addr 0x75, MOTION D8
+ *   (no click button — D10 unused)
  */
 &pro_micro_i2c {
 	trackball: trackball@75 {
@@ -66,23 +65,6 @@
 	};
 };
 
-/* Physical trackball click button on D10 */
-/ {
-	trackball_buttons: trackball_buttons {
-		compatible = "gpio-keys";
-		status = "okay";
-		debounce-interval-ms = <5>;
-		trackball_btn {
-			gpios = <&pro_micro 10 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
-			zephyr,code = <INPUT_BTN_LEFT>;
-		};
-	};
-};
-
 &trackball_split {
 	device = <&trackball>;
-};
-
-&trackball_btn_split {
-	device = <&trackball_buttons>;
 };

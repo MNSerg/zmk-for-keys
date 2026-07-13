@@ -32,11 +32,12 @@ zmk-for-keys/
 
 | Артефакт | Куда прошивать |
 |----------|----------------|
-| `corne_v3_left` | Левый nice!nano (central, OLED, Studio, связь с ПК) |
-| `corne_v3_right` | Правый nice!nano (peripheral, трекбол) |
-| `corne_v3_right_bare` | Правый без трекбола (матрица OK — подтверждено) |
-| `corne_v3_right_nobtn` | Правый + PAT912x, без кнопки D10 (бисект NFC) |
-| `settings_reset` | Сброс BLE-пар / настроек (обе половины по очереди) |
+| `corne_v3_left` | Левый nice!nano (OLED + Studio) |
+| `corne_v3_left_nostudio` | Левый без Studio (диагностика split) |
+| `corne_v3_left_bare` | Левый минимальный (без OLED/RGB) |
+| `corne_v3_right` | Правый (PAT912x, без кнопки D10) |
+| `corne_v3_right_bare` | Правый только матрица+RGB |
+| `settings_reset` | Сброс BLE / keymap settings (обе половины) |
 
 ---
 
@@ -166,7 +167,7 @@ revision: main   # Zephyr 4.x, нативный PAT912x
 
 Список UF2 в Actions. Для повседневной работы нужны `corne_v3_left` и `corne_v3_right`. Остальное — диагностика (`settings_reset`, `tester_*`, `*_bare`).
 
-`corne_v3_left` собирается со snippet **`studio-rpc-usb-uart`** и `-DCONFIG_ZMK_STUDIO=y`. `corne_v3_right_bare` — правая без трекбола, чтобы проверить матрицу.
+`corne_v3_left` — snippet **`studio-rpc-usb-uart`** + Studio. Есть также `corne_v3_left_nostudio` и `*_bare` для отладки split.
 
 ---
 
