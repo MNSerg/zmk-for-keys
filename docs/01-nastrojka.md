@@ -23,7 +23,7 @@ zmk-for-keys/
         ├── corne_v3_left.*    # Левая половина (central): OLED, слушатели трекбола
         ├── corne_v3_right.*   # Правая половина (peripheral): PAT912x
         ├── corne_v3_left_bare.* # Диагностика без OLED/RGB/pointing
-        ├── custom_status_screen.c # Экран OLED: связь с правой + слой
+        ├── custom_status_screen.c # (отключён — ломал boot; сейчас built-in экран)
         └── CMakeLists.txt
 ```
 
