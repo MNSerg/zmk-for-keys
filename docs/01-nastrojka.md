@@ -23,6 +23,7 @@ zmk-for-keys/
         ├── corne_v3_left.*    # Левая половина (central): OLED, слушатели трекбола
         ├── corne_v3_right.*   # Правая половина (peripheral): PAT912x
         ├── corne_v3_left_bare.* # Диагностика без OLED/RGB/pointing
+        ├── corne_v3_right_bare.* # Диагностика: матрица без трекбола
         ├── custom_status_screen.c # built-in clone + R:OK (нужны LVGL fonts в .conf)
         └── CMakeLists.txt
 ```
@@ -31,8 +32,9 @@ zmk-for-keys/
 
 | Артефакт | Куда прошивать |
 |----------|----------------|
-| `corne_v3_left` | Левый nice!nano (central, OLED, связь с ПК) |
+| `corne_v3_left` | Левый nice!nano (central, OLED, Studio, связь с ПК) |
 | `corne_v3_right` | Правый nice!nano (peripheral, трекбол) |
+| `corne_v3_right_bare` | Правый без трекбола (если `R:OK`, но клавиши мёртвые) |
 | `settings_reset` | Сброс BLE-пар / настроек (обе половины по очереди) |
 
 ---
