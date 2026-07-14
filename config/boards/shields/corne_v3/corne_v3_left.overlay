@@ -26,5 +26,12 @@
 /* Central side: enable listeners for trackball events from the right half */
 &trackball_listener {
 	status = "okay";
-	/* 1:1 while validating; restore zip_xy_scaler later if too fast */
+	/* pinout SCALE_DIVISOR = 2 */
+	input-processors = <&zip_xy_scaler 1 2>;
+
+	/* Layer 2 (raise / RAI): trackball scrolls */
+	scroll {
+		layers = <2>;
+		input-processors = <&zip_xy_to_scroll_mapper>;
+	};
 };

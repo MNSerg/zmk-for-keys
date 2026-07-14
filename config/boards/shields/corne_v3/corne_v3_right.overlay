@@ -37,9 +37,7 @@
 };
 
 /*
- * Module: VCC(3.3V), SCL→D3, SDA→D2, MOTION unused, GND
- * diag-nudge-ms: cursor should slowly drift without touching the ball.
- * Blue LED blinks when real (or nudged) deltas are reported.
+ * Module: VCC(3.3V), SCL→D3, SDA→D2, MOTION unused (stuck 0 V), GND
  */
 &pro_micro_i2c {
 	status = "okay";
@@ -51,7 +49,7 @@
 		status = "okay";
 
 		poll-interval-ms = <5>;
-		diag-nudge-ms = <1000>;
+		/* diag-nudge-ms removed — path verified */
 
 		/* Raw register values ≈ 1000 CPI */
 		res-x = <0xbc>;
@@ -66,4 +64,6 @@
 
 &trackball_split {
 	device = <&trackball>;
+	/* Uncomment / adjust if axes feel wrong for your mount */
+	/* input-processors = <&zip_xy_transform INPUT_TRANSFORM_XY_SWAP>; */
 };

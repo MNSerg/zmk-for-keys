@@ -56,7 +56,6 @@ struct pat912x_poll_data {
 	uint32_t nudge_ticks;
 	uint32_t tick;
 	bool ready;
-	bool led_on;
 };
 
 static int wr(struct pat912x_poll_data *data, uint8_t reg, uint8_t val) {
@@ -79,10 +78,7 @@ static void led_set(bool on) {
 #endif
 }
 
-static void led_pulse(struct pat912x_poll_data *data) {
-	data->led_on = !data->led_on;
-	led_set(data->led_on);
-}
+/* Keep LED steady on after probe — activity blink was for bring-up only */
 
 /* PixArt AN / Prusa bank0 tracking optimization (after reset, already in bank0) */
 static const uint8_t init_bank0[] = {
@@ -200,8 +196,6 @@ static void report_xy(struct pat912x_poll_data *data, int32_t x, int32_t y) {
 	if (x == 0 && y == 0) {
 		return;
 	}
-
-	led_pulse(data);
 
 	if (cfg->axis_x >= 0) {
 		bool sync = cfg->axis_y < 0;
