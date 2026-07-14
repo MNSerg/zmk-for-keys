@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: MIT
  *
  * PAT9125EL polling driver with Prusa/PixArt tracking-optimization init.
- * MOTION GPIO ignored (often stuck at 0 V). Blue LED: solid=probe OK,
- * blink=nonzero delta. Optional diag-nudge injects cursor motion to test HID path.
+ * MOTION GPIO ignored (often stuck at 0 V). Blue LED solid = I2C probe OK.
  */
 
 #define DT_DRV_COMPAT corne_pat912x_poll
@@ -38,7 +37,6 @@ LOG_MODULE_REGISTER(pat912x_poll, CONFIG_INPUT_LOG_LEVEL);
 struct pat912x_poll_config {
 	struct i2c_dt_spec i2c;
 	uint16_t poll_interval_ms;
-	uint16_t diag_nudge_ms;
 	int32_t axis_x;
 	int32_t axis_y;
 	uint8_t res_x;
@@ -53,8 +51,6 @@ struct pat912x_poll_data {
 	struct i2c_dt_spec i2c;
 	struct k_timer poll_timer;
 	struct k_work poll_work;
-	uint32_t nudge_ticks;
-	uint32_t tick;
 	bool ready;
 };
 
@@ -208,7 +204,6 @@ static void report_xy(struct pat912x_poll_data *data, int32_t x, int32_t y) {
 
 static void pat912x_poll_work_handler(struct k_work *work) {
 	struct pat912x_poll_data *data = CONTAINER_OF(work, struct pat912x_poll_data, poll_work);
-	const struct pat912x_poll_config *cfg = data->dev->config;
 	uint8_t motion = 0;
 	uint8_t xl = 0, yl = 0, xyh = 0;
 	int32_t x, y;
@@ -216,14 +211,6 @@ static void pat912x_poll_work_handler(struct k_work *work) {
 
 	if (!data->ready) {
 		return;
-	}
-
-	data->tick++;
-
-	/* Periodic synthetic nudge — proves split→HID path if cursor drifts alone */
-	if (cfg->diag_nudge_ms > 0 && data->nudge_ticks > 0 &&
-	    (data->tick % data->nudge_ticks) == 0) {
-		report_xy(data, 8, 0);
 	}
 
 	ret = rd(data, PAT9125_MOTION, &motion);
@@ -272,12 +259,6 @@ static int pat912x_poll_init(const struct device *dev) {
 	data->dev = dev;
 	data->i2c = cfg->i2c;
 	data->ready = false;
-	data->led_on = false;
-	data->tick = 0;
-	data->nudge_ticks = 0;
-	if (cfg->diag_nudge_ms > 0 && cfg->poll_interval_ms > 0) {
-		data->nudge_ticks = MAX(1u, cfg->diag_nudge_ms / cfg->poll_interval_ms);
-	}
 
 	if (!i2c_is_ready_dt(&cfg->i2c)) {
 		led_set(false);
@@ -316,13 +297,11 @@ static int pat912x_poll_init(const struct device *dev) {
 	k_work_init(&data->poll_work, pat912x_poll_work_handler);
 	k_timer_init(&data->poll_timer, pat912x_poll_timer_handler, NULL);
 	data->ready = true;
-	data->led_on = true;
 	led_set(true);
 	k_timer_start(&data->poll_timer, K_MSEC(cfg->poll_interval_ms),
 		      K_MSEC(cfg->poll_interval_ms));
 
-	LOG_INF("PAT9125 ready @0x%02x poll=%ums nudge=%ums", data->i2c.addr, cfg->poll_interval_ms,
-		cfg->diag_nudge_ms);
+	LOG_INF("PAT9125 ready @0x%02x poll=%ums", data->i2c.addr, cfg->poll_interval_ms);
 	return 0;
 }
 
@@ -330,7 +309,6 @@ static int pat912x_poll_init(const struct device *dev) {
 	static const struct pat912x_poll_config pat912x_poll_cfg_##n = {                           \
 		.i2c = I2C_DT_SPEC_INST_GET(n),                                                    \
 		.poll_interval_ms = DT_INST_PROP(n, poll_interval_ms),                             \
-		.diag_nudge_ms = DT_INST_PROP_OR(n, diag_nudge_ms, 0),                             \
 		.axis_x = DT_INST_PROP_OR(n, zephyr_axis_x, -1),                                   \
 		.axis_y = DT_INST_PROP_OR(n, zephyr_axis_y, -1),                                   \
 		.res_x = DT_INST_PROP(n, res_x),                                                   \

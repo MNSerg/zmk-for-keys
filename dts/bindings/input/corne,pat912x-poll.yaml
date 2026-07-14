@@ -14,11 +14,6 @@ properties:
     type: int
     default: 5
 
-  diag-nudge-ms:
-    type: int
-    default: 0
-    description: If >0, inject synthetic X movement this often (HID path test).
-
   zephyr,axis-x:
     type: int
 
