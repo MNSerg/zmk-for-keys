@@ -35,7 +35,8 @@ zmk-for-keys/
 | `corne_v3_left` | Левый nice!nano (OLED + Studio) |
 | `corne_v3_left_nostudio` | Левый без Studio (диагностика split) |
 | `corne_v3_left_bare` | Левый минимальный (без OLED/RGB) |
-| `corne_v3_right` | Правый (PAT912x, без кнопки D10) |
+| `corne_v3_right` | Правый (PAT912x, OLED выкл.) |
+| `corne_v3_right_oled` | Правый + SSD1306 на I2C трекбола |
 | `corne_v3_right_bare` | Правый только матрица+RGB |
 | `settings_reset` | Сброс BLE / keymap settings (обе половины) |
 
@@ -47,7 +48,7 @@ zmk-for-keys/
 |--|-------------------------|---------------------------|
 | Роль ZMK | **Central** | **Peripheral** |
 | Связь с ПК | USB и/или BLE | Нет (только с левой по BLE) |
-| OLED | Да (SSD1306) | Нет |
+| OLED | Да (SSD1306) | Опционально (выкл. по умолчанию) |
 | Трекбол PAT912x | Нет (принимает события) | Да |
 | RGB | 27 LED на своей половине | 27 LED на своей половине |
 
@@ -68,7 +69,7 @@ zmk-for-keys/
 | Колонки правой | `corne_v3_right.overlay` | `kscan0` → `col-gpios` (зеркально) |
 | RGB Data (D1 / P0.06) | `corne_v3.dtsi` | `&spi3` / `led_strip`, `chain-length = <27>` |
 | I2C OLED/трекбол (D2/D3) | `corne_v3.dtsi` | `&pinctrl` i2c0, `&pro_micro_i2c` |
-| OLED 128×32 addr 0x3C | `corne_v3.dtsi` | `oled: ssd1306@3c` (включается на left) |
+| OLED 128×32 addr 0x3C | `corne_v3.dtsi` | `oled: ssd1306@3c` (left всегда; right — опционально) |
 | PAT912x (poll) | `corne_v3_right.overlay` + `pat912x_poll.c` | D2/D3 I2C, MOTION D8 optional, addr 0x75/73/79 |
 | Масштаб трекбола ÷2 | `corne_v3_left.overlay` | `zip_xy_scaler 1 2` |
 | Скролл трекбола на слое 2 | `corne_v3_left.overlay` | `scroll { layers = <2>; ... }` |
@@ -89,7 +90,8 @@ zmk-for-keys/
 Боковые файлы:
 
 - `corne_v3_left.conf` — OLED (custom + LVGL fonts), RGB, pointing, **Studio**
-- `corne_v3_right.conf` — RGB, pointing, **без** display / Studio
+- `corne_v3_right.conf` — RGB, pointing, OLED **выкл.** / Studio нет
+- `corne_v3_right_oled.conf` + `.overlay` — опциональный OLED справа (тот же I2C)
 - `corne_v3_right_bare.conf` — RGB + матрица, **без** трекбола (диагностика)
 
 ### 3.3. Раскладка — `config/corne_v3.keymap`
@@ -129,20 +131,31 @@ zmk-for-keys/
 
 | Что | Где |
 |-----|-----|
-| Драйвер / размер | `corne_v3.dtsi` → `ssd1306@3c` |
-| Экран | `custom_status_screen.c` (клон built-in + `R:OK`) |
-| Включение | `corne_v3_left.conf` → `CONFIG_ZMK_DISPLAY_STATUS_SCREEN_CUSTOM=y` |
+| Драйвер / размер | `corne_v3.dtsi` → `ssd1306@3c` (I2C D2/D3, addr **0x3C**) |
+| Экран | `custom_status_screen.c` |
+| Включение слева | `corne_v3_left.conf` → `CONFIG_ZMK_DISPLAY_STATUS_SCREEN_CUSTOM=y` |
+| Включение справа | см. ниже — щит `corne_v3_right_oled` |
+| Синхрон слоя/USB‑BT на правую | `status_sync.c` + behavior `&st_sync` (GLOBAL invoke) |
 
-**Важно:** `STATUS_SCREEN_CUSTOM` сам по себе **не** включает шрифты и `LV_Z_MEM_POOL_SIZE=4096` (это делает только `BUILT_IN`). Без них LVGL падает → белый шум OLED и мёртвый USB. В `corne_v3_left.conf` эти опции продублированы явно.
+**Важно:** `STATUS_SCREEN_CUSTOM` сам по себе **не** включает шрифты и `LV_Z_MEM_POOL_SIZE=4096` (это делает только `BUILT_IN`). Без них LVGL падает → белый шум OLED и мёртвый USB. В `corne_v3_left.conf` / `corne_v3_right_oled.conf` эти опции продублированы явно.
 
-На экране (128×32), ASCII (без LV_SYMBOL — они давали белые прямоугольники):
+На экране (128×32), ASCII:
 
-| Угол | Содержание |
-|------|------------|
-| Верх слева | `USB` / `BT1` / `BT1?` / `BT1*` |
-| Верх справа | `NN%` или `CHG NN%` |
-| Низ слева | **`R:OK`** / **`R:--`** |
-| Низ справа | Слой (`DEF` / …), иконка клавиатуры |
+| Угол | Левая (central) | Правая (peripheral, если OLED вкл.) |
+|------|-----------------|-------------------------------------|
+| Верх слева | `USB` / `BT1` / `BT1?` / `BT1*` | то же (релей с левой) |
+| Верх справа | `NN%` (заряд этой половины) | `NN%` (заряд правой) |
+| Низ слева | **`R:OK`** / **`R:--`** | **`L:OK`** / **`L:--`** |
+| Низ справа | Слой (`DEF` / `CFG` / …) | то же (релей с левой) |
+
+#### Как включить OLED на правой половине
+
+По умолчанию выключен (`corne_v3_right.overlay` → `&oled { status = "disabled"; }`, `CONFIG_ZMK_DISPLAY=n`).
+
+1. В CI уже собирается артефакт **`corne_v3_right_oled`** (`shield: corne_v3_right corne_v3_right_oled`).
+   Либо в `build.yaml` замените обычный right на тот же shield-список.
+2. OLED на **той же I2C**, что трекбол: SDA=D2, SCL=D3, VCC=3.3V, GND; адрес **0x3C** (трекбол 0x75/73/79).
+3. Прошейте left + **`corne_v3_right_oled`** из одного zip (не смешивать с `corne_v3_right` без OLED).
 
 ### 3.6. Split / BLE между половинами
 

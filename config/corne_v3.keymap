@@ -46,6 +46,12 @@
             middle-count = <6>;
             hold-ms = <2500>;
         };
+
+        /* Central packs layer+USB/BTn; GLOBAL invoke updates right OLED */
+        st_sync: st_sync {
+            compatible = "corne,behavior-status-sync";
+            #binding-cells = <1>;
+        };
     };
 
     combos {

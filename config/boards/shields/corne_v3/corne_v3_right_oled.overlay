@@ -1,0 +1,16 @@
+/*
+ * Optional right OLED on the trackball I2C bus (D2/D3, addr 0x3C).
+ * Stack with: shield: corne_v3_right corne_v3_right_oled
+ *
+ * PAT912x stays at 0x75/0x73/0x79 — no address clash with SSD1306 @ 0x3C.
+ */
+
+&oled {
+	status = "okay";
+};
+
+/ {
+	chosen {
+		zephyr,display = &oled;
+	};
+};

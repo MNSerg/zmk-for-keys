@@ -37,9 +37,15 @@ include:
     cmake-args: -DCONFIG_ZMK_STUDIO=y
     artifact-name: corne_v3_left
 
+  # Right OLED (same I2C as trackball) is OFF in the default right artifact.
+  # Flash corne_v3_right_oled UF2 when the SSD1306 is installed on the right.
   - board: nice_nano@2.0.0//zmk
     shield: corne_v3_right
     artifact-name: corne_v3_right
+
+  - board: nice_nano@2.0.0//zmk
+    shield: corne_v3_right corne_v3_right_oled
+    artifact-name: corne_v3_right_oled
 
   # Right without trackball — isolate matrix (pair with left_bare + settings_reset)
   - board: nice_nano@2.0.0//zmk

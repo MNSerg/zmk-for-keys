@@ -1,0 +1,9 @@
+# Copyright (c) 2026 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+
+description: |
+  Relay central layer/output status to the split peripheral for OLED.
+
+compatible: "corne,behavior-status-sync"
+
+include: one_param.yaml

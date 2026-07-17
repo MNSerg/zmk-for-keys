@@ -1,0 +1,8 @@
+file_format: "1"
+id: corne_v3_right_oled
+name: Corne V3 Right OLED (optional)
+type: shield
+url: https://github.com/MNSerg/zmk-for-keys
+requires: [i2c_oled]
+features:
+  - display
