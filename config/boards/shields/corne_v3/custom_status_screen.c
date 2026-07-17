@@ -201,18 +201,31 @@ ZMK_SUBSCRIPTION(widget_corne_battery_ui, zmk_battery_state_changed);
 
 /* ---- layer name ---- */
 
+#if IS_ENABLED(CONFIG_ZMK_SPLIT) && !IS_ENABLED(CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
+/* Peripheral has no keymap runtime — names come from DT display-name order. */
+#define CORNE_LAYER_NAME_ENTRY(node) DT_PROP_OR(node, display_name, ""),
+static const char *const corne_layer_names[] = {
+	DT_FOREACH_CHILD_STATUS_OKAY(DT_INST(0, zmk_keymap), CORNE_LAYER_NAME_ENTRY)
+};
+#undef CORNE_LAYER_NAME_ENTRY
+#endif
+
 static void refresh_layer_label(void) {
 	char text[16] = {};
-	zmk_keymap_layer_index_t index;
+	uint8_t index;
+	const char *name = NULL;
 
 #if IS_ENABLED(CONFIG_ZMK_SPLIT) && !IS_ENABLED(CONFIG_ZMK_SPLIT_ROLE_CENTRAL)
 	const struct corne_status_sync *st = corne_status_sync_get();
 	index = st->valid ? st->layer_index : 0;
+	if (index < ARRAY_SIZE(corne_layer_names)) {
+		name = corne_layer_names[index];
+	}
 #else
 	index = zmk_keymap_highest_layer_active();
+	name = zmk_keymap_layer_name(zmk_keymap_layer_index_to_id(index));
 #endif
 
-	const char *name = zmk_keymap_layer_name(zmk_keymap_layer_index_to_id(index));
 	if (name == NULL || name[0] == '\0') {
 		snprintf(text, sizeof(text), "L%u", (unsigned)index);
 	} else {
