@@ -37,6 +37,15 @@
             global-quick-tap;
             quick-tap-ms = <400>;
         };
+
+        /* Local battery % as green middle-row LED bar (this half only) */
+        batt_bar: batt_bar {
+            compatible = "corne,behavior-batt-bar";
+            #binding-cells = <0>;
+            middle-start = <12>;
+            middle-count = <6>;
+            hold-ms = <2500>;
+        };
     };
 
     combos {
@@ -87,6 +96,16 @@
             bindings = <&kp PIPE>;
             key-positions = <17 18>;
         };
+
+        /*
+         * CFG layer: outer thumbs on both halves (positions 36 + 41).
+         * Same combo toggles CFG off. Hard to hit by accident.
+         */
+        cfg_combo {
+            bindings = <&tog 4>;
+            key-positions = <36 41>;
+            timeout-ms = <120>;
+        };
     };
 
     keymap {
@@ -130,6 +149,24 @@
 &trans  &out OUT_USB  &out OUT_BLE  &out OUT_TOG  &ext_power EP_ON  &ext_power EP_OFF  &trans  &trans  &trans  &trans  &trans  &trans
 &trans  &trans        &trans        &trans        &trans            &trans            &trans  &trans  &trans  &trans  &trans  &trans
                                     &trans        &trans            &trans            &trans  &trans  &trans
+            >;
+        };
+
+        /*
+         * CFG — RGB + battery bar + power.
+         * Enter/exit: outer thumbs together (combo 36+41), or thumb &to 0.
+         * Middle row: &batt_bar — green LED bar = this half's battery %.
+         */
+        cfg_layer {
+            display-name = "CFG";
+            bindings = <
+&rgb_ug RGB_TOG  &rgb_ug RGB_EFF  &rgb_ug RGB_EFR  &rgb_ug RGB_SPI  &rgb_ug RGB_SPD  &rgb_ug RGB_BRI
+    &rgb_ug RGB_BRD  &rgb_ug RGB_HUI  &rgb_ug RGB_HUD  &rgb_ug RGB_SAI  &rgb_ug RGB_SAD  &rgb_ug RGB_COLOR_HSB(120,100,40)
+&batt_bar  &batt_bar  &batt_bar  &batt_bar  &batt_bar  &batt_bar
+    &batt_bar  &batt_bar  &batt_bar  &batt_bar  &batt_bar  &batt_bar
+&rgb_ug RGB_ON  &rgb_ug RGB_OFF  &ext_power EP_TOG  &ext_power EP_ON  &ext_power EP_OFF  &soft_off
+    &soft_off  &trans  &trans  &trans  &trans  &trans
+                             &to 0  &trans  &trans   &trans     &trans  &to 0
             >;
         };
 

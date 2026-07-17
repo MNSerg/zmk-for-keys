@@ -12,3 +12,6 @@ endif()
 if(CONFIG_SHIELD_CORNE_V3_RIGHT AND CONFIG_ZMK_POINTING AND CONFIG_I2C)
   target_sources(app PRIVATE ${CMAKE_CURRENT_LIST_DIR}/pat912x_poll.c)
 endif()
+
+# Middle-row battery bar (&batt_bar); no-ops if strip/underglow unavailable
+target_sources(app PRIVATE ${CMAKE_CURRENT_LIST_DIR}/batt_bar.c)

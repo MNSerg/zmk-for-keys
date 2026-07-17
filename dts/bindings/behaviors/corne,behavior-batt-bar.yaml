@@ -1,0 +1,26 @@
+# Copyright (c) 2026 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+
+description: |
+  Briefly show this half's battery level as a green bar on the middle
+  per-key LED row (after the underglow pixels).
+
+compatible: "corne,behavior-batt-bar"
+
+include: zero_param.yaml
+
+properties:
+  middle-start:
+    type: int
+    default: 12
+    description: First middle-row LED index (0-based; 6 underglow + 6 top → 12).
+
+  middle-count:
+    type: int
+    default: 6
+    description: Number of LEDs in the middle-row battery bar.
+
+  hold-ms:
+    type: int
+    default: 2500
+    description: How long to keep the bar visible.

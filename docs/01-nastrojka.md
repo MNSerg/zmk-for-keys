@@ -120,7 +120,8 @@ zmk-for-keys/
 | Число LED | `corne_v3.dtsi` → `chain-length = <27>` (6 underglow + 21 per-key) |
 | Драйв MOSI | `nordic,drive-mode = <NRF_DRIVE_H0H1>` |
 | Вкл. эффект / яркость | `corne_v3_left.conf` / `_right.conf` → `CONFIG_ZMK_RGB_UNDERGLOW_*` |
-| Переключение с клавиатуры | слой LOW → `&rgb_ug RGB_TOG` |
+| Переключение с клавиатуры | слой LOW → `&rgb_ug RGB_TOG`; полный набор на слое **CFG** |
+| Индикатор заряда LED | `&batt_bar` (`batt_bar.c`), средний ряд = индексы 12–17 |
 
 Если горят только первые N LED — обычно обрыв цепи после N-го (пайка DO→DI), не `chain-length`.
 
