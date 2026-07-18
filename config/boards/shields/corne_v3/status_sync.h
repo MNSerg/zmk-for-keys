@@ -14,6 +14,7 @@ struct corne_status_sync {
 	uint8_t ble_profile; /* 0-based */
 	bool profile_connected;
 	bool profile_bonded;
+	bool central_active;
 	bool valid;
 };
 
@@ -30,6 +31,8 @@ void corne_status_sync_set_changed_cb(corne_status_sync_changed_cb_t cb);
 
 #define CORNE_SYNC_FLAG_CONN BIT(0)
 #define CORNE_SYNC_FLAG_BOND BIT(1)
+/* Central is ACTIVE — peripheral refreshes its idle timer (poke only on right). */
+#define CORNE_SYNC_FLAG_ACTIVE BIT(2)
 
 #define CORNE_SYNC_PACK(layer, transport, profile, flags)                                          \
 	(((uint32_t)(layer)&0xff) | (((uint32_t)(transport)&0xff) << 8) |                          \

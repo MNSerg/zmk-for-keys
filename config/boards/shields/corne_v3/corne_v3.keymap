@@ -45,7 +45,7 @@
             hold-ms = <2500>;
         };
 
-        /* Central packs layer+USB/BTn; GLOBAL invoke updates right OLED */
+        /* Central→right: layer/USB/BTn + ACTIVE (wakes right idle; poke only on right) */
         st_sync: st_sync {
             compatible = "corne,behavior-status-sync";
             #binding-cells = <1>;

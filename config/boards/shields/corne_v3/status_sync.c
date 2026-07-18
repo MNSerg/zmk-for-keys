@@ -2,8 +2,12 @@
  * Copyright (c) 2026 The ZMK Contributors
  * SPDX-License-Identifier: MIT
  *
- * GLOBAL behavior: central packs layer + host endpoint into param1 and invokes
- * on peripherals so the right OLED can show DEF/USB/BT1 like the left.
+ * GLOBAL behavior: central packs layer + host endpoint + activity into param1
+ * and invokes on peripherals so the right OLED can show DEF/USB/BT1, and so the
+ * right half wakes from idle when the left is used.
+ *
+ * Important: activity poke runs only on the peripheral. Poking on central would
+ * reset its idle timer on every sync and prevent AUTO_OFF_IDLE.
  */
 
 #define DT_DRV_COMPAT corne_behavior_status_sync
@@ -14,11 +18,13 @@
 #include <zephyr/sys/util.h>
 
 #include <drivers/behavior.h>
+#include <zmk/activity.h>
 #include <zmk/behavior.h>
 #include <zmk/ble.h>
 #include <zmk/endpoints.h>
 #include <zmk/endpoints_types.h>
 #include <zmk/event_manager.h>
+#include <zmk/events/activity_state_changed.h>
 #include <zmk/events/ble_active_profile_changed.h>
 #include <zmk/events/endpoint_changed.h>
 #include <zmk/events/layer_state_changed.h>
@@ -26,6 +32,11 @@
 #include <zmk/events/usb_conn_state_changed.h>
 #include <zmk/keymap.h>
 #include <zmk/usb.h>
+
+#if IS_ENABLED(CONFIG_ZMK_SPLIT) && !IS_ENABLED(CONFIG_ZMK_SPLIT_ROLE_CENTRAL) &&                  \
+	IS_ENABLED(CONFIG_INPUT)
+#include <zephyr/input/input.h>
+#endif
 
 #include "status_sync.h"
 
@@ -40,6 +51,22 @@ const struct corne_status_sync *corne_status_sync_get(void) { return &sync_state
 
 void corne_status_sync_set_changed_cb(corne_status_sync_changed_cb_t cb) { changed_cb = cb; }
 
+#if IS_ENABLED(CONFIG_ZMK_SPLIT) && !IS_ENABLED(CONFIG_ZMK_SPLIT_ROLE_CENTRAL) &&                  \
+	IS_ENABLED(CONFIG_INPUT)
+/* Virtual input device on the right only — refreshes idle without HID/keymap side effects. */
+static int activity_poke_init(const struct device *dev) {
+	ARG_UNUSED(dev);
+	return 0;
+}
+
+DEVICE_DEFINE(corne_activity_poke, "corne_activity_poke", activity_poke_init, NULL, NULL, NULL,
+	      POST_KERNEL, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT, NULL);
+
+static void poke_peripheral_activity(void) {
+	(void)input_report_rel(DEVICE_GET(corne_activity_poke), INPUT_REL_X, 0, true, K_NO_WAIT);
+}
+#endif
+
 static void apply_sync_param(uint32_t param1) {
 	sync_state.layer_index = CORNE_SYNC_LAYER(param1);
 	sync_state.transport = CORNE_SYNC_TRANSPORT(param1);
@@ -47,7 +74,16 @@ static void apply_sync_param(uint32_t param1) {
 	uint8_t flags = CORNE_SYNC_FLAGS(param1);
 	sync_state.profile_connected = (flags & CORNE_SYNC_FLAG_CONN) != 0;
 	sync_state.profile_bonded = (flags & CORNE_SYNC_FLAG_BOND) != 0;
+	sync_state.central_active = (flags & CORNE_SYNC_FLAG_ACTIVE) != 0;
 	sync_state.valid = true;
+
+#if IS_ENABLED(CONFIG_ZMK_SPLIT) && !IS_ENABLED(CONFIG_ZMK_SPLIT_ROLE_CENTRAL) &&                  \
+	IS_ENABLED(CONFIG_INPUT)
+	/* Never poke on central — that was blocking 10s idle on the left. */
+	if (sync_state.central_active) {
+		poke_peripheral_activity();
+	}
+#endif
 
 	if (changed_cb) {
 		changed_cb();
@@ -115,6 +151,10 @@ static uint32_t pack_current_status(void) {
 		flags |= CORNE_SYNC_FLAG_BOND; /* USB has no bond concept */
 	}
 
+	if (zmk_activity_get_state() == ZMK_ACTIVITY_ACTIVE) {
+		flags |= CORNE_SYNC_FLAG_ACTIVE;
+	}
+
 	return CORNE_SYNC_PACK(zmk_keymap_highest_layer_active(), transport, profile, flags);
 }
 
@@ -155,6 +195,8 @@ ZMK_SUBSCRIPTION(corne_status_sync_relay, zmk_ble_active_profile_changed);
 ZMK_SUBSCRIPTION(corne_status_sync_relay, zmk_usb_conn_state_changed);
 #endif
 ZMK_SUBSCRIPTION(corne_status_sync_relay, zmk_split_peripheral_status_changed);
+/* Wake right immediately when left becomes ACTIVE; clear flag when left goes IDLE. */
+ZMK_SUBSCRIPTION(corne_status_sync_relay, zmk_activity_state_changed);
 
 static void status_sync_boot_work(struct k_work *work) {
 	ARG_UNUSED(work);
@@ -167,14 +209,15 @@ static struct k_work_delayable status_sync_periodic;
 static void status_sync_periodic_work(struct k_work *work) {
 	ARG_UNUSED(work);
 	invoke_status_sync();
-	k_work_schedule(&status_sync_periodic, K_SECONDS(5));
+	/* < IDLE_TIMEOUT/2 so an active left keeps the right from idling alone. */
+	k_work_schedule(&status_sync_periodic, K_SECONDS(4));
 }
 
 static int status_sync_central_init(void) {
 	k_work_init_delayable(&status_sync_boot, status_sync_boot_work);
 	k_work_init_delayable(&status_sync_periodic, status_sync_periodic_work);
 	k_work_schedule(&status_sync_boot, K_MSEC(3000));
-	k_work_schedule(&status_sync_periodic, K_SECONDS(5));
+	k_work_schedule(&status_sync_periodic, K_SECONDS(4));
 	return 0;
 }
 
