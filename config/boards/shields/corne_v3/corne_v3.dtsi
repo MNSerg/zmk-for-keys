@@ -104,6 +104,9 @@ RC(2,0) RC(2,1) RC(2,2) RC(2,3) RC(2,4) RC(2,5)  RC(2,6)  RC(2,7) RC(2,8) RC(2,9
 /* RGB WS2812 on D1 = P0.06 — 6 underglow + 21 per-key.
  * High-drive MOSI helps 3.3V MCU → first 5V LED; later LEDs regenerate DO.
  * If only the first N LEDs light, check DO→DI solder/trace after LED N.
+ *
+ * Underglow (first 6) is forced off via led_strip_blank proxy; only per-key
+ * LEDs (indices 6–26) follow ZMK RGB underglow.
  */
 &pinctrl {
 	spi3_default: spi3_default {
@@ -144,7 +147,15 @@ RC(2,0) RC(2,1) RC(2,2) RC(2,3) RC(2,4) RC(2,5)  RC(2,6)  RC(2,7) RC(2,8) RC(2,9
 };
 
 / {
+	led_strip_perkey: led_strip_blank_prefix {
+		compatible = "corne,led-strip-blank-prefix";
+		status = "okay";
+		target = <&led_strip>;
+		chain-length = <27>;
+		blank-count = <6>;
+	};
+
 	chosen {
-		zmk,underglow = &led_strip;
+		zmk,underglow = &led_strip_perkey;
 	};
 };

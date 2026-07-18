@@ -84,7 +84,8 @@ zmk-for-keys/
 | `CONFIG_ZMK_KEYBOARD_NAME` | Имя BLE-устройства («Corne») |
 | `CONFIG_BT_CTLR_TX_PWR_PLUS_8` | Мощность BLE |
 | `CONFIG_ZMK_USB` / `CONFIG_ZMK_BLE` | Транспорты к ПК |
-| `CONFIG_ZMK_SLEEP` | Глубокий сон (сейчас выключен для отладки) |
+| `CONFIG_ZMK_IDLE_TIMEOUT` | Idle (сейчас **10 с** → гаснет RGB/OLED) |
+| `CONFIG_ZMK_SLEEP` / `IDLE_SLEEP_TIMEOUT` | Глубокий сон через **60 мин** бездействия |
 | `CONFIG_ZMK_STUDIO` | ZMK Studio (только left + snippet в `build.yaml`) |
 
 Боковые файлы:
@@ -120,9 +121,10 @@ zmk-for-keys/
 | Что | Где |
 |-----|-----|
 | Число LED | `corne_v3.dtsi` → `chain-length = <27>` (6 underglow + 21 per-key) |
+| Нижняя подсветка выкл. | `led_strip_blank.c` / `led_strip_perkey` — первые 6 всегда 0 |
 | Драйв MOSI | `nordic,drive-mode = <NRF_DRIVE_H0H1>` |
-| Вкл. эффект / яркость | `corne_v3_left.conf` / `_right.conf` → `CONFIG_ZMK_RGB_UNDERGLOW_*` |
-| Переключение с клавиатуры | слой LOW → `&rgb_ug RGB_TOG`; полный набор на слое **CFG** |
+| Вкл. / idle / эффект | `corne_v3_*.conf` → `ON_START`, `AUTO_OFF_IDLE`, `EFF_START=0` (solid) |
+| Переключение с клавиатуры | LOW → `RGB_TOG`; CFG → toggle / яркость / hue |
 | Индикатор заряда LED | `&batt_bar` (`batt_bar.c`), средний ряд = индексы 12–17 |
 
 Если горят только первые N LED — обычно обрыв цепи после N-го (пайка DO→DI), не `chain-length`.

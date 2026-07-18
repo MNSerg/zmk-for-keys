@@ -18,3 +18,6 @@ endif()
 
 # Middle-row battery bar (&batt_bar); no-ops if strip/underglow unavailable
 target_sources(app PRIVATE ${CMAKE_CURRENT_LIST_DIR}/batt_bar.c)
+
+# Force first 6 underglow LEDs off (proxy in front of WS2812)
+target_sources(app PRIVATE ${CMAKE_CURRENT_LIST_DIR}/led_strip_blank.c)

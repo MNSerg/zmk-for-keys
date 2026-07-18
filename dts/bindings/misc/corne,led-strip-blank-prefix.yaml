@@ -1,0 +1,24 @@
+# Copyright (c) 2026 The ZMK Contributors
+# SPDX-License-Identifier: MIT
+
+description: |
+  LED strip proxy that forces the first N pixels off (Corne underglow),
+  then forwards the frame to the real WS2812 strip.
+
+compatible: "corne,led-strip-blank-prefix"
+
+properties:
+  target:
+    type: phandle
+    required: true
+    description: Real LED strip device to forward updates to.
+
+  chain-length:
+    type: int
+    required: true
+    description: Total pixels (must match the target strip).
+
+  blank-count:
+    type: int
+    default: 6
+    description: How many leading pixels to force off every frame.
