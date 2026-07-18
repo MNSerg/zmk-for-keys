@@ -2,22 +2,14 @@
 # SPDX-License-Identifier: MIT
 
 description: |
-  Briefly show this half's battery level as a green bar on selected
-  per-key LEDs (Corne middle row by default).
+  Briefly show this half's battery level as a green bar on the Corne
+  middle per-key LED row (indices fixed in batt_bar.c from foostan/QMK map).
 
 compatible: "corne,behavior-batt-bar"
 
 include: zero_param.yaml
 
 properties:
-  led-map:
-    type: array
-    default: [25, 22, 19, 16, 11, 8]
-    description: |
-      0-based LED indices for the bar, left→right on the half
-      (Corne middle row SW7–SW12 / mirrored right). From foostan/QMK
-      wiring: not a contiguous index range.
-
   hold-ms:
     type: int
     default: 2500

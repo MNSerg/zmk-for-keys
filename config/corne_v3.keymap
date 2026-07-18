@@ -38,12 +38,10 @@
             quick-tap-ms = <400>;
         };
 
-        /* Local battery % as green middle-row LED bar (this half only).
-         * Indices = Corne middle row SW7–SW12 (foostan/QMK chain, not contiguous). */
+        /* Local battery % as green middle-row LED bar (map in batt_bar.c). */
         batt_bar: batt_bar {
             compatible = "corne,behavior-batt-bar";
             #binding-cells = <0>;
-            led-map = <25 22 19 16 11 8>;
             hold-ms = <2500>;
         };
 
