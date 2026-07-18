@@ -125,7 +125,7 @@ zmk-for-keys/
 | Драйв MOSI | `nordic,drive-mode = <NRF_DRIVE_H0H1>` |
 | Вкл. / idle / эффект | `corne_v3_*.conf` → `ON_START`, `AUTO_OFF_IDLE`, `EFF_START=0` (solid) |
 | Переключение с клавиатуры | LOW → `RGB_TOG`; CFG → toggle / яркость / hue |
-| Индикатор заряда LED | `&batt_bar` (`batt_bar.c`), средний ряд = индексы 12–17 |
+| Индикатор заряда LED | `&batt_bar` — `led-map = <25 22 19 16 11 8>` (средний ряд); override гасит остальное |
 
 Если горят только первые N LED — обычно обрыв цепи после N-го (пайка DO→DI), не `chain-length`.
 

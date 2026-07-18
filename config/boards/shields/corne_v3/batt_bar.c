@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: MIT
  *
  * Show local battery % as a green bar on the middle per-key LED row.
- * While active, repaints faster than underglow so the bar stays visible.
+ * Uses led_strip_blank override so underglow cannot overwrite the bar.
  */
 
 #define DT_DRV_COMPAT corne_behavior_batt_bar
@@ -28,13 +28,16 @@ LOG_MODULE_DECLARE(zmk, CONFIG_ZMK_LOG_LEVEL);
 #include <zmk/rgb_underglow.h>
 #endif
 
+#include "led_strip_blank.h"
+
 #define STRIP_CHOSEN DT_CHOSEN(zmk_underglow)
 #define STRIP_LEN DT_PROP(STRIP_CHOSEN, chain_length)
 #define REFRESH_MS 40
+#define BATT_BAR_MAX_LEDS 12
 
 struct batt_bar_config {
-	uint8_t middle_start;
-	uint8_t middle_count;
+	const uint8_t *led_map;
+	uint8_t led_count;
 	uint16_t hold_ms;
 };
 
@@ -44,14 +47,11 @@ struct batt_bar_data {
 	bool active;
 };
 
-static const struct device *strip_dev;
 static struct led_rgb pixels[STRIP_LEN];
 static struct batt_bar_data batt_bar_data;
 static const struct batt_bar_config *active_cfg;
 
 static uint8_t lit_from_soc(uint8_t soc, uint8_t count) {
-	uint8_t lit;
-
 	if (count == 0 || soc == 0) {
 		return 0;
 	}
@@ -59,67 +59,80 @@ static uint8_t lit_from_soc(uint8_t soc, uint8_t count) {
 		return count;
 	}
 
-	lit = (uint8_t)((soc * count) / 100);
+	/* Floor buckets: 49% of 6 → 2 LEDs; never light more than soc warrants. */
+	uint8_t lit = (uint8_t)((soc * count) / 100);
 	return lit == 0 ? 1 : lit;
 }
 
 static void paint_bar(const struct batt_bar_config *cfg) {
 	uint8_t soc = zmk_battery_state_of_charge();
-	uint8_t lit = lit_from_soc(soc, cfg->middle_count);
-	uint8_t end = cfg->middle_start + cfg->middle_count;
-
-	if (end > STRIP_LEN) {
-		end = STRIP_LEN;
-	}
+	uint8_t lit = lit_from_soc(soc, cfg->led_count);
 
 	for (uint8_t i = 0; i < STRIP_LEN; i++) {
 		pixels[i] = (struct led_rgb){0};
 	}
 
-	for (uint8_t i = cfg->middle_start; i < end; i++) {
-		uint8_t idx = i - cfg->middle_start;
-		if (idx < lit) {
-			pixels[i] = (struct led_rgb){.r = 0, .g = 80, .b = 0};
-		} else {
-			pixels[i] = (struct led_rgb){.r = 0, .g = 8, .b = 0};
+	for (uint8_t i = 0; i < cfg->led_count; i++) {
+		uint8_t idx = cfg->led_map[i];
+		if (idx >= STRIP_LEN) {
+			continue;
+		}
+		if (i < lit) {
+			/* Only filled segments on — empty stay fully off */
+			pixels[idx] = (struct led_rgb){.r = 0, .g = 90, .b = 0};
 		}
 	}
 
-	int err = led_strip_update_rgb(strip_dev, pixels, STRIP_LEN);
+	int err = corne_led_strip_set_override(pixels, STRIP_LEN);
 	if (err < 0) {
-		LOG_ERR("batt_bar: LED update failed (%d)", err);
+		LOG_ERR("batt_bar: override failed (%d)", err);
 	} else {
-		LOG_DBG("batt_bar: soc=%u lit=%u/%u", soc, lit, cfg->middle_count);
+		LOG_DBG("batt_bar: soc=%u lit=%u/%u", soc, lit, cfg->led_count);
 	}
+}
+
+static void end_bar(void) {
+	corne_led_strip_clear_override();
+
+#if IS_ENABLED(CONFIG_ZMK_RGB_UNDERGLOW)
+	{
+		bool on = false;
+		if (zmk_rgb_underglow_get_state(&on) == 0 && !on) {
+			for (uint8_t i = 0; i < STRIP_LEN; i++) {
+				pixels[i] = (struct led_rgb){0};
+			}
+			const struct device *strip = DEVICE_DT_GET(STRIP_CHOSEN);
+			if (device_is_ready(strip)) {
+				(void)led_strip_update_rgb(strip, pixels, STRIP_LEN);
+			}
+		}
+		/* If underglow is on, its next tick restores the effect. */
+	}
+#else
+	{
+		const struct device *strip = DEVICE_DT_GET(STRIP_CHOSEN);
+		for (uint8_t i = 0; i < STRIP_LEN; i++) {
+			pixels[i] = (struct led_rgb){0};
+		}
+		if (device_is_ready(strip)) {
+			(void)led_strip_update_rgb(strip, pixels, STRIP_LEN);
+		}
+	}
+#endif
 }
 
 static void paint_work_handler(struct k_work *work) {
 	struct k_work_delayable *dwork = k_work_delayable_from_work(work);
 	struct batt_bar_data *data = CONTAINER_OF(dwork, struct batt_bar_data, paint_work);
 
-	if (!data->active || active_cfg == NULL || strip_dev == NULL) {
+	if (!data->active || active_cfg == NULL) {
 		return;
 	}
 
 	if (k_uptime_get() >= data->deadline_ms) {
 		data->active = false;
 		active_cfg = NULL;
-#if IS_ENABLED(CONFIG_ZMK_RGB_UNDERGLOW)
-		{
-			bool on = false;
-			if (zmk_rgb_underglow_get_state(&on) == 0 && !on) {
-				for (uint8_t i = 0; i < STRIP_LEN; i++) {
-					pixels[i] = (struct led_rgb){0};
-				}
-				(void)led_strip_update_rgb(strip_dev, pixels, STRIP_LEN);
-			}
-		}
-#else
-		for (uint8_t i = 0; i < STRIP_LEN; i++) {
-			pixels[i] = (struct led_rgb){0};
-		}
-		(void)led_strip_update_rgb(strip_dev, pixels, STRIP_LEN);
-#endif
+		end_bar();
 		return;
 	}
 
@@ -135,12 +148,7 @@ static int on_keymap_binding_pressed(struct zmk_behavior_binding *binding,
 
 	ARG_UNUSED(event);
 
-	if (strip_dev == NULL || !device_is_ready(strip_dev)) {
-		LOG_WRN("batt_bar: LED strip not ready");
-		return ZMK_BEHAVIOR_OPAQUE;
-	}
-
-	if (cfg->middle_start >= STRIP_LEN || cfg->middle_count == 0) {
+	if (cfg->led_count == 0 || cfg->led_map == NULL) {
 		return ZMK_BEHAVIOR_OPAQUE;
 	}
 
@@ -172,21 +180,18 @@ static const struct behavior_driver_api behavior_batt_bar_driver_api = {
 static int behavior_batt_bar_init(const struct device *dev) {
 	struct batt_bar_data *data = dev->data;
 
-	strip_dev = DEVICE_DT_GET(STRIP_CHOSEN);
 	k_work_init_delayable(&data->paint_work, paint_work_handler);
 	data->active = false;
-
-	if (!device_is_ready(strip_dev)) {
-		LOG_WRN("batt_bar: strip %s not ready", strip_dev->name);
-	}
-
 	return 0;
 }
 
 #define BATT_BAR_INST(n)                                                                           \
+	static const uint8_t batt_bar_leds_##n[] = DT_INST_PROP(n, led_map);                        \
+	BUILD_ASSERT(ARRAY_SIZE(batt_bar_leds_##n) <= BATT_BAR_MAX_LEDS,                           \
+		     "batt_bar led-map too long");                                                 \
 	static const struct batt_bar_config batt_bar_cfg_##n = {                                   \
-		.middle_start = DT_INST_PROP(n, middle_start),                                     \
-		.middle_count = DT_INST_PROP(n, middle_count),                                     \
+		.led_map = batt_bar_leds_##n,                                                      \
+		.led_count = ARRAY_SIZE(batt_bar_leds_##n),                                        \
 		.hold_ms = DT_INST_PROP(n, hold_ms),                                               \
 	};                                                                                         \
 	BEHAVIOR_DT_INST_DEFINE(n, behavior_batt_bar_init, NULL, &batt_bar_data,                   \
