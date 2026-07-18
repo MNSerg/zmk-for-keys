@@ -52,10 +52,7 @@ struct pat912x_poll_data {
 	struct k_timer poll_timer;
 	struct k_work poll_work;
 	bool ready;
-	uint8_t i2c_fail_streak;
 };
-
-#define PAT912X_REINIT_AFTER_FAILS 20
 
 static int wr(struct pat912x_poll_data *data, uint8_t reg, uint8_t val) {
 	return i2c_reg_write_byte_dt(&data->i2c, reg, val);
@@ -205,24 +202,6 @@ static void report_xy(struct pat912x_poll_data *data, int32_t x, int32_t y) {
 	}
 }
 
-static void pat912x_note_i2c_fail(struct pat912x_poll_data *data) {
-	if (data->i2c_fail_streak < 255) {
-		data->i2c_fail_streak++;
-	}
-
-	/* After VCC glitch / soft wake, sensor may need a full re-init. */
-	if (data->i2c_fail_streak >= PAT912X_REINIT_AFTER_FAILS) {
-		data->i2c_fail_streak = 0;
-		if (pat912x_full_init(data) == 0) {
-			led_set(true);
-			LOG_INF("PAT9125 re-init OK @0x%02x", data->i2c.addr);
-		} else {
-			led_set(false);
-			LOG_WRN("PAT9125 re-init failed @0x%02x", data->i2c.addr);
-		}
-	}
-}
-
 static void pat912x_poll_work_handler(struct k_work *work) {
 	struct pat912x_poll_data *data = CONTAINER_OF(work, struct pat912x_poll_data, poll_work);
 	uint8_t motion = 0;
@@ -236,7 +215,6 @@ static void pat912x_poll_work_handler(struct k_work *work) {
 
 	ret = rd(data, PAT9125_MOTION, &motion);
 	if (ret < 0) {
-		pat912x_note_i2c_fail(data);
 		return;
 	}
 	ARG_UNUSED(motion);
@@ -244,21 +222,16 @@ static void pat912x_poll_work_handler(struct k_work *work) {
 	/* Always sample deltas (MOTION pad may be stuck; register bit may lag). */
 	ret = rd(data, PAT9125_DELTA_XL, &xl);
 	if (ret < 0) {
-		pat912x_note_i2c_fail(data);
 		return;
 	}
 	ret = rd(data, PAT9125_DELTA_YL, &yl);
 	if (ret < 0) {
-		pat912x_note_i2c_fail(data);
 		return;
 	}
 	ret = rd(data, PAT9125_DELTA_XYH, &xyh);
 	if (ret < 0) {
-		pat912x_note_i2c_fail(data);
 		return;
 	}
-
-	data->i2c_fail_streak = 0;
 
 	x = xl | ((xyh << 4) & 0xf00);
 	y = yl | ((xyh << 8) & 0xf00);
@@ -286,7 +259,6 @@ static int pat912x_poll_init(const struct device *dev) {
 	data->dev = dev;
 	data->i2c = cfg->i2c;
 	data->ready = false;
-	data->i2c_fail_streak = 0;
 
 	if (!i2c_is_ready_dt(&cfg->i2c)) {
 		led_set(false);

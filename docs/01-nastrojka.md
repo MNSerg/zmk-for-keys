@@ -86,7 +86,6 @@ zmk-for-keys/
 | `CONFIG_ZMK_USB` / `CONFIG_ZMK_BLE` | Транспорты к ПК |
 | `CONFIG_ZMK_IDLE_TIMEOUT` | Idle (сейчас **10 с** → гаснет RGB/OLED) |
 | `CONFIG_ZMK_SLEEP` / `IDLE_SLEEP_TIMEOUT` | Глубокий сон через **60 мин** бездействия |
-| `&st_sync` activity flag | Левая ACTIVE → правая не уходит в idle/sleep одна (иначе трекбол «засыпает») |
 | `CONFIG_ZMK_STUDIO` | ZMK Studio (только left + snippet в `build.yaml`) |
 
 Боковые файлы:

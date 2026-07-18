@@ -2,10 +2,8 @@
  * Copyright (c) 2026 The ZMK Contributors
  * SPDX-License-Identifier: MIT
  *
- * GLOBAL behavior: central packs layer + host endpoint + activity into param1
- * and invokes on peripherals so the right OLED can show DEF/USB/BT1 and the
- * right half stays awake while the left is in use (ZMK otherwise only wakes
- * central from peripheral activity, not vice versa).
+ * GLOBAL behavior: central packs layer + host endpoint into param1 and invokes
+ * on peripherals so the right OLED can show DEF/USB/BT1 like the left.
  */
 
 #define DT_DRV_COMPAT corne_behavior_status_sync
@@ -16,13 +14,11 @@
 #include <zephyr/sys/util.h>
 
 #include <drivers/behavior.h>
-#include <zmk/activity.h>
 #include <zmk/behavior.h>
 #include <zmk/ble.h>
 #include <zmk/endpoints.h>
 #include <zmk/endpoints_types.h>
 #include <zmk/event_manager.h>
-#include <zmk/events/activity_state_changed.h>
 #include <zmk/events/ble_active_profile_changed.h>
 #include <zmk/events/endpoint_changed.h>
 #include <zmk/events/layer_state_changed.h>
@@ -30,10 +26,6 @@
 #include <zmk/events/usb_conn_state_changed.h>
 #include <zmk/keymap.h>
 #include <zmk/usb.h>
-
-#if IS_ENABLED(CONFIG_INPUT)
-#include <zephyr/input/input.h>
-#endif
 
 #include "status_sync.h"
 
@@ -48,21 +40,6 @@ const struct corne_status_sync *corne_status_sync_get(void) { return &sync_state
 
 void corne_status_sync_set_changed_cb(corne_status_sync_changed_cb_t cb) { changed_cb = cb; }
 
-#if IS_ENABLED(CONFIG_INPUT)
-/* Virtual input device: refreshes activity idle timer without HID / keymap side effects. */
-static int activity_poke_init(const struct device *dev) {
-	ARG_UNUSED(dev);
-	return 0;
-}
-
-DEVICE_DEFINE(corne_activity_poke, "corne_activity_poke", activity_poke_init, NULL, NULL, NULL,
-	      POST_KERNEL, CONFIG_KERNEL_INIT_PRIORITY_DEFAULT, NULL);
-
-static void poke_local_activity(void) {
-	(void)input_report_rel(DEVICE_GET(corne_activity_poke), INPUT_REL_X, 0, true, K_NO_WAIT);
-}
-#endif
-
 static void apply_sync_param(uint32_t param1) {
 	sync_state.layer_index = CORNE_SYNC_LAYER(param1);
 	sync_state.transport = CORNE_SYNC_TRANSPORT(param1);
@@ -70,14 +47,7 @@ static void apply_sync_param(uint32_t param1) {
 	uint8_t flags = CORNE_SYNC_FLAGS(param1);
 	sync_state.profile_connected = (flags & CORNE_SYNC_FLAG_CONN) != 0;
 	sync_state.profile_bonded = (flags & CORNE_SYNC_FLAG_BOND) != 0;
-	sync_state.central_active = (flags & CORNE_SYNC_FLAG_ACTIVE) != 0;
 	sync_state.valid = true;
-
-#if IS_ENABLED(CONFIG_INPUT)
-	if (sync_state.central_active) {
-		poke_local_activity();
-	}
-#endif
 
 	if (changed_cb) {
 		changed_cb();
@@ -145,10 +115,6 @@ static uint32_t pack_current_status(void) {
 		flags |= CORNE_SYNC_FLAG_BOND; /* USB has no bond concept */
 	}
 
-	if (zmk_activity_get_state() == ZMK_ACTIVITY_ACTIVE) {
-		flags |= CORNE_SYNC_FLAG_ACTIVE;
-	}
-
 	return CORNE_SYNC_PACK(zmk_keymap_highest_layer_active(), transport, profile, flags);
 }
 
@@ -189,7 +155,6 @@ ZMK_SUBSCRIPTION(corne_status_sync_relay, zmk_ble_active_profile_changed);
 ZMK_SUBSCRIPTION(corne_status_sync_relay, zmk_usb_conn_state_changed);
 #endif
 ZMK_SUBSCRIPTION(corne_status_sync_relay, zmk_split_peripheral_status_changed);
-ZMK_SUBSCRIPTION(corne_status_sync_relay, zmk_activity_state_changed);
 
 static void status_sync_boot_work(struct k_work *work) {
 	ARG_UNUSED(work);
@@ -202,15 +167,14 @@ static struct k_work_delayable status_sync_periodic;
 static void status_sync_periodic_work(struct k_work *work) {
 	ARG_UNUSED(work);
 	invoke_status_sync();
-	/* Faster than IDLE_TIMEOUT/2 so an active central keeps the peripheral awake. */
-	k_work_schedule(&status_sync_periodic, K_SECONDS(4));
+	k_work_schedule(&status_sync_periodic, K_SECONDS(5));
 }
 
 static int status_sync_central_init(void) {
 	k_work_init_delayable(&status_sync_boot, status_sync_boot_work);
 	k_work_init_delayable(&status_sync_periodic, status_sync_periodic_work);
 	k_work_schedule(&status_sync_boot, K_MSEC(3000));
-	k_work_schedule(&status_sync_periodic, K_SECONDS(4));
+	k_work_schedule(&status_sync_periodic, K_SECONDS(5));
 	return 0;
 }
 
