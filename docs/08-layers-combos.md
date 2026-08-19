@@ -6,38 +6,33 @@
 
 | # | Имя | Вход |
 |---|-----|------|
-| 0 | DEF | база |
-| 1 | LOW | hold Space (`&lt 1`) |
-| 2 | RAI | hold Enter (`&lt 2`) / hold ltq-Bksp; **или sticky-комбо 38+40** |
-| 3 | ADJ | hold `&mo 3` |
-| 4 | CFG | комбо внешних thumbs **36+41** (`&tog 4`); выход — то же или `&to 0` |
+| 0 | DEF | база; pos **40** = Delete (forward) |
+| 1 | LOW | hold Space (`&lt 1`): F1–F12, grave над F1, RGB_TOG под F1 |
+| 2 | RAI | hold Enter (`&lt 2`); **или sticky-комбо 38+40**; pos **11** = Insert |
+| 3 | ADJ | hold `&mo 3`; справа — макросы ([12-macros.md](12-macros.md)) |
+| 4 | CFG | комбо **36+41**; выход — то же или `&to 0` |
 
-### RAI: моментный и постоянный
+### LOW
 
-- **Пока удерживаете** Enter (`&lt 2`) или ltq-Backspace — слой активен, отпустили — нет.
-- **Комбо Enter+ltq-Bksp (позиции 38 и 40)** — `&tog 2`: слой остаётся, пока снова не нажмёте ту же комбо (как CFG).
+- Верхний ряд: **Grave** на позиции F1-колонки, далее цифры…
+- Средний ряд: **F1…F12**
+- Под F1: **RGB_TOG**
 
-На RAI трекбол = скролл ([05-trackball.md](05-trackball.md)).
+### RAI
 
-### CFG
+- Hold Enter — моментный слой.  
+- Комбо **38+40** — постоянный (toggle), как CFG.  
+- Pos 11 — **Insert**. Трекбол = скролл.
 
-Комбо **36 + 41** (внешние большие пальцы обеих половин). RGB, `&batt_bar`, `&soft_off`.
+### ADJ
 
-## Combos (скобки и т.п.)
+Левая: Studio / BT / USB / EXT_POWER.  
+Правая: макросы — см. [12-macros.md](12-macros.md).
 
-В keymap → `combos { ... }`. Позиции 0-based по матрице 42 клавиш (левая 0–20, правая 21–41 с offset).
+## Combos
 
 | Комбо | Позиции | Действие |
 |-------|---------|----------|
 | cfg | 36, 41 | `&tog 4` |
 | rai | 38, 40 | `&tog 2` |
 | скобки и др. | см. keymap | |
-
-Сменить sticky-RAI: другие `key-positions` у `rai_combo`.
-
-## Hold-tap
-
-- `hm` — homerow mods  
-- `ltq` — layer-tap с длинным tapping-term  
-
-Параметры в узлах `behaviors` keymap.

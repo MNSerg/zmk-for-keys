@@ -13,5 +13,6 @@
 | [09-split-ble.md](09-split-ble.md) | Split, BLE, settings_reset, Studio |
 | [10-build-flash.md](10-build-flash.md) | CI, UF2, `deploy.ps1` |
 | [11-power.md](11-power.md) | EXT_POWER, soft-off, VCC трекбола |
+| [12-macros.md](12-macros.md) | Макросы на ADJ (правая половина) |
 
 Исходный пин-аут: [`../pinout nicenano.txt`](../pinout%20nicenano.txt).

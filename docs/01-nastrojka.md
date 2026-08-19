@@ -4,7 +4,7 @@
 
 Связанные документы: [использование](02-ispolzovanie.md), [оглавление docs](README.md).
 
-Подробно по узлам: [idle](03-idle-sleep.md) · [RGB](04-rgb.md) · [трекбол](05-trackball.md) · [OLED](06-oled.md) · [batt_bar](07-battery-bar.md) · [слои](08-layers-combos.md) · [BLE](09-split-ble.md) · [сборка](10-build-flash.md) · [питание](11-power.md).
+Подробно по узлам: [idle](03-idle-sleep.md) · [RGB](04-rgb.md) · [трекбол](05-trackball.md) · [OLED](06-oled.md) · [batt_bar](07-battery-bar.md) · [слои](08-layers-combos.md) · [BLE](09-split-ble.md) · [сборка](10-build-flash.md) · [питание](11-power.md) · [макросы](12-macros.md).
 
 ---
 
@@ -73,8 +73,7 @@ zmk-for-keys/
 | I2C OLED/трекбол (D2/D3) | `corne_v3.dtsi` | `&pinctrl` i2c0, `&pro_micro_i2c` |
 | OLED 128×32 addr 0x3C | `corne_v3.dtsi` | `oled: ssd1306@3c` (left всегда; right — опционально) |
 | PAT912x (poll) | `corne_v3_right.overlay` + `pat912x_poll.c` | D2/D3 I2C, MOTION D8 optional, addr 0x75/73/79 |
-| Масштаб/оси мыши | `corne_v3_left.overlay` | `zip_xy_transform` XY_SWAP + `zip_xy_scaler 3 1` |
-| Скролл трекбола на слое 2 | `corne_v3_left.overlay` | `scroll { … scaler 1 4 + xy_to_scroll }` |
+| Масштаб/оси трекбола | `trackball_tuning.h` + left overlay | мышь ×1.6 + XY_SWAP\|Y_INVERT; скролл ÷6 |
 
 Меняете пин → правьте **overlay/dtsi**, не только `pinout nicenano.txt` (тот файл — справочник).
 

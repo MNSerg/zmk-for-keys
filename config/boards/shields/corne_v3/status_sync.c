@@ -7,8 +7,9 @@
  * right half tracks left idle/wake for RGB.
  *
  * Activity poke runs only on the peripheral (never on central — that would
- * block left AUTO_OFF_IDLE). When left goes IDLE we force-right RGB off so both
- * halves dim together; on wake we restore RGB (fixes first-wake dark right).
+ * block left AUTO_OFF_IDLE). When left goes IDLE we black out the right strip
+ * via led_strip override WITHOUT calling zmk_rgb_underglow_off() — that would
+ * poison AUTO_OFF_IDLE's "was on before sleep" flag and leave RGB dark on wake.
  */
 
 #define DT_DRV_COMPAT corne_behavior_status_sync
@@ -42,6 +43,8 @@
 #if IS_ENABLED(CONFIG_ZMK_SPLIT) && !IS_ENABLED(CONFIG_ZMK_SPLIT_ROLE_CENTRAL) &&                  \
 	IS_ENABLED(CONFIG_ZMK_RGB_UNDERGLOW)
 #include <zmk/rgb_underglow.h>
+#include <string.h>
+#include "led_strip_blank.h"
 #endif
 
 #include "status_sync.h"
@@ -73,16 +76,19 @@ static void poke_peripheral_activity(void) {
 }
 #endif
 
-#if IS_ENABLED(CONFIG_ZMK_RGB_UNDERGLOW)
-/* True after we forced RGB off because left went idle while right was still ACTIVE. */
+#if IS_ENABLED(CONFIG_ZMK_RGB_UNDERGLOW) && DT_HAS_CHOSEN(zmk_underglow)
+#define SYNC_STRIP_LEN DT_PROP(DT_CHOSEN(zmk_underglow), chain_length)
+
+/* True while left is idle and we blank the right strip via override (state.on untouched). */
 static bool sync_dimmed_rgb;
+static struct led_rgb sync_dim_pixels[SYNC_STRIP_LEN];
 
 static void restore_rgb_if_sync_dimmed(void) {
 	if (!sync_dimmed_rgb) {
 		return;
 	}
 	sync_dimmed_rgb = false;
-	(void)zmk_rgb_underglow_on();
+	corne_led_strip_clear_override();
 }
 
 static void dim_rgb_with_left_idle(void) {
@@ -91,8 +97,12 @@ static void dim_rgb_with_left_idle(void) {
 	if (zmk_rgb_underglow_get_state(&on) != 0 || !on) {
 		return;
 	}
+
+	memset(sync_dim_pixels, 0, sizeof(sync_dim_pixels));
+	if (corne_led_strip_set_override(sync_dim_pixels, SYNC_STRIP_LEN) < 0) {
+		return;
+	}
 	sync_dimmed_rgb = true;
-	(void)zmk_rgb_underglow_off();
 }
 
 static int peri_activity_rgb_listener(const zmk_event_t *eh) {
@@ -119,14 +129,21 @@ static void apply_peripheral_activity_sync(bool central_active) {
 #if IS_ENABLED(CONFIG_INPUT)
 		poke_peripheral_activity();
 #endif
-#if IS_ENABLED(CONFIG_ZMK_RGB_UNDERGLOW)
-		if (rising) {
+#if IS_ENABLED(CONFIG_ZMK_RGB_UNDERGLOW) && DT_HAS_CHOSEN(zmk_underglow)
+		if (rising || sync_dimmed_rgb) {
 			restore_rgb_if_sync_dimmed();
 		}
 #endif
 	} else if (falling) {
-#if IS_ENABLED(CONFIG_ZMK_RGB_UNDERGLOW)
+#if IS_ENABLED(CONFIG_ZMK_RGB_UNDERGLOW) && DT_HAS_CHOSEN(zmk_underglow)
 		dim_rgb_with_left_idle();
+#endif
+	} else {
+#if IS_ENABLED(CONFIG_ZMK_RGB_UNDERGLOW) && DT_HAS_CHOSEN(zmk_underglow)
+		/* Re-assert blank if batt_bar/etc cleared override while left still idle. */
+		if (sync_dimmed_rgb && !corne_led_strip_override_active()) {
+			dim_rgb_with_left_idle();
+		}
 #endif
 	}
 }

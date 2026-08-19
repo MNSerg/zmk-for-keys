@@ -7,6 +7,7 @@
 #include "corne_v3.dtsi"
 #include <input/processors.dtsi>
 #include <dt-bindings/zmk/input_transform.h>
+#include "trackball_tuning.h"
 
 &kscan0 {
 	col-gpios
@@ -26,21 +27,20 @@
 
 /*
  * Trackball on central (events from right).
- * Mouse (DEF): XY swapped, speed ×3 (mul/div).
- * Scroll (RAI / layer 2): no swap, slowed ×1/4 then mapped to wheel.
- * Tune: docs/05-trackball.md
+ * Tunables: trackball_tuning.h — see docs/05-trackball.md
  */
 &trackball_listener {
 	status = "okay";
 	input-processors
-		= <&zip_xy_transform INPUT_TRANSFORM_XY_SWAP>
-		, <&zip_xy_scaler 3 1>
+		= <&zip_xy_transform CORNE_MOUSE_TRANSFORM>
+		, <&zip_xy_scaler CORNE_MOUSE_SCALE_MUL CORNE_MOUSE_SCALE_DIV>
 		;
 
 	scroll {
 		layers = <2>;
 		input-processors
-			= <&zip_xy_scaler 1 4>
+			= <&zip_xy_transform CORNE_SCROLL_TRANSFORM>
+			, <&zip_xy_scaler CORNE_SCROLL_SCALE_MUL CORNE_SCROLL_SCALE_DIV>
 			, <&zip_xy_to_scroll_mapper>
 			;
 	};

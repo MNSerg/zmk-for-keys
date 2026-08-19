@@ -30,6 +30,8 @@ RGB idle: `CONFIG_ZMK_RGB_UNDERGLOW_AUTO_OFF_IDLE=y` в `corne_v3_left.conf` / `
 
 Poke **никогда** не делается на левой — иначе левая не уйдёт в idle за 10 с.
 
+Когда левая уходит в IDLE, правая **не** вызывает `zmk_rgb_underglow_off()` (это портило «состояние до сна» и RGB не зажигался при пробуждении). Вместо этого полоса гасится через **led_strip override** (как у `&batt_bar`): `state.on` остаётся true, при wake override снимается и подсветка снова видна.
+
 Файлы:
 
 | Файл | Роль |

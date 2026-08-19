@@ -52,6 +52,139 @@
         };
     };
 
+    /*
+     * ADJ right-half macros — edit bindings here, then flash LEFT.
+     * Guide: docs/12-macros.md
+     */
+    macros {
+        m_copy: m_copy {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings
+                = <&macro_press &kp LCTRL>
+                , <&macro_tap &kp C>
+                , <&macro_release &kp LCTRL>
+                ;
+        };
+        m_paste: m_paste {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings
+                = <&macro_press &kp LCTRL>
+                , <&macro_tap &kp V>
+                , <&macro_release &kp LCTRL>
+                ;
+        };
+        m_cut: m_cut {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings
+                = <&macro_press &kp LCTRL>
+                , <&macro_tap &kp X>
+                , <&macro_release &kp LCTRL>
+                ;
+        };
+        m_undo: m_undo {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings
+                = <&macro_press &kp LCTRL>
+                , <&macro_tap &kp Z>
+                , <&macro_release &kp LCTRL>
+                ;
+        };
+        m_redo: m_redo {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings
+                = <&macro_press &kp LCTRL>
+                , <&macro_press &kp LSHFT>
+                , <&macro_tap &kp Z>
+                , <&macro_release &kp LSHFT>
+                , <&macro_release &kp LCTRL>
+                ;
+        };
+        m_save: m_save {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings
+                = <&macro_press &kp LCTRL>
+                , <&macro_tap &kp S>
+                , <&macro_release &kp LCTRL>
+                ;
+        };
+        m_selall: m_selall {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings
+                = <&macro_press &kp LCTRL>
+                , <&macro_tap &kp A>
+                , <&macro_release &kp LCTRL>
+                ;
+        };
+        m_find: m_find {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings
+                = <&macro_press &kp LCTRL>
+                , <&macro_tap &kp F>
+                , <&macro_release &kp LCTRL>
+                ;
+        };
+        m_new: m_new {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings
+                = <&macro_press &kp LCTRL>
+                , <&macro_tap &kp N>
+                , <&macro_release &kp LCTRL>
+                ;
+        };
+        m_win: m_win {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings
+                = <&macro_press &kp LGUI>
+                , <&macro_tap &kp TAB>
+                , <&macro_release &kp LGUI>
+                ;
+        };
+        m_close: m_close {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings
+                = <&macro_press &kp LALT>
+                , <&macro_tap &kp F4>
+                , <&macro_release &kp LALT>
+                ;
+        };
+        m_desk: m_desk {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings
+                = <&macro_press &kp LGUI>
+                , <&macro_tap &kp D>
+                , <&macro_release &kp LGUI>
+                ;
+        };
+        /* Placeholders — replace bindings with your own (see docs/12-macros.md) */
+        m_custom1: m_custom1 {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&macro_tap &kp F13>;
+        };
+        m_custom2: m_custom2 {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&macro_tap &kp F14>;
+        };
+        m_custom3: m_custom3 {
+            compatible = "zmk,behavior-macro";
+            #binding-cells = <0>;
+            bindings = <&macro_tap &kp F15>;
+        };
+    };
+
     combos {
         compatible = "zmk,combos";
 
@@ -112,9 +245,8 @@
         };
 
         /*
-         * RAI (arrows/nav + trackball scroll): sticky toggle like CFG.
-         * Momentary still via &lt 2 ENTER / &ltq 2 BACKSPACE.
-         * Combo: Enter thumb (38) + raise-Backspace thumb (40).
+         * RAI sticky toggle (like CFG): Enter thumb (38) + pos 40 (DEL on DEF).
+         * Momentary RAI still via &lt 2 ENTER.
          */
         rai_combo {
             bindings = <&tog 2>;
@@ -132,27 +264,29 @@
 &kp TAB    &kp Q           &kp W           &kp E        &kp R             &kp T        &kp Y  &kp U             &kp I          &kp O            &kp P               &kp BSPC
 &kp LCTRL  &hm LEFT_GUI A  &hm LEFT_ALT S  &hm LCTRL D  &hm LEFT_SHIFT F  &kp G        &kp H  &hm RSHIFT J      &hm RCTRL K    &hm RIGHT_ALT L  &hm RGUI SEMICOLON  &kp SQT
 &kp LSHFT  &kp Z           &kp X           &kp C        &kp V             &kp B        &kp N  &kp M             &kp COMMA      &kp DOT          &kp FSLH            &kp ESC
-                                           &kp TAB      &lt 1 SPACE       &lt 2 ENTER  &mo 3  &ltq 2 BACKSPACE  &kp BACKSPACE
+                                           &kp TAB      &lt 1 SPACE       &lt 2 ENTER  &mo 3  &kp DELETE        &kp BACKSPACE
             >;
         };
 
         lower_layer {
             display-name = "LOW";
+            /* Top: grave above F1; middle: F1–F12; under F1: RGB_TOG */
             bindings = <
-&kp TAB      &kp N1  &kp N2  &kp N3  &kp N4  &kp N5   &kp N6     &kp N7           &kp N8     &kp N9  &kp N0   &kp BSPC
-&bootloader  &rgb_ug RGB_TOG  &trans  &trans  &trans  &kp F12  &kp MINUS  &kp EQUAL        &kp GRAVE  &trans  &kp SQT  &trans
-&ext_power EP_TOG       &trans  &trans  &trans  &trans  &trans   &trans     &mkp MB1         &mkp MB2    &mkp MB3  &trans   &trans
-                             &trans  &trans  &trans   &trans     &kp RIGHT_SHIFT  &trans
+&kp GRAVE  &kp N1  &kp N2  &kp N3  &kp N4  &kp N5   &kp N6  &kp N7  &kp N8  &kp N9  &kp N0  &kp BSPC
+&kp F1     &kp F2  &kp F3  &kp F4  &kp F5  &kp F6   &kp F7  &kp F8  &kp F9  &kp F10 &kp F11 &kp F12
+&rgb_ug RGB_TOG  &bootloader  &ext_power EP_TOG  &trans  &trans  &trans
+    &trans  &mkp MB1  &mkp MB2  &mkp MB3  &trans  &trans
+                             &trans  &trans  &trans   &trans  &kp RIGHT_SHIFT  &trans
             >;
         };
 
         raise_layer {
             display-name = "RAI";
-            /* Hold Enter/ltq-Bksp = momentary; combo 38+40 = sticky toggle (like CFG).
+            /* Hold Enter = momentary; combo 38+40 = sticky. Pos 11 = Insert.
              * Trackball scrolls on this layer (corne_v3_left.overlay). */
             bindings = <
-&trans  &kp ESC     &kp KP_NUMBER_7  &kp KP_NUMBER_8  &kp KP_NUMBER_9  &kp KP_NUMBER_0  &kp HOME  &trans    &kp UP    &trans     &trans  &trans
-&trans  &kp CAPS    &kp KP_NUMBER_4  &kp KP_NUMBER_5  &kp KP_NUMBER_6  &kp AT           &kp END   &kp LEFT  &kp DOWN  &kp RIGHT  &trans  &trans
+&trans  &kp ESC     &kp KP_NUMBER_7  &kp KP_NUMBER_8  &kp KP_NUMBER_9  &kp KP_NUMBER_0  &kp HOME  &trans    &kp UP    &trans     &trans  &kp INSERT
+&trans  &kp CAPS    &kp KP_NUMBER_4  &kp KP_NUMBER_5  &kp KP_NUMBER_6  &kp TAB           &kp END   &kp LEFT  &kp DOWN  &kp RIGHT  &trans  &trans
 &trans  &kp DELETE  &kp KP_NUMBER_1  &kp KP_NUMBER_2  &kp KP_NUMBER_3  &kp DOT          &trans    &mkp MB1  &mkp MB2  &mkp MB3   &trans  &trans
                                      &trans           &trans           &trans           &trans    &trans    &trans
             >;
@@ -160,11 +294,16 @@
 
         layer_3 {
             display-name = "ADJ";
+            /* Left: BT/USB/power/Studio. Right: macros (docs/12-macros.md). */
             bindings = <
-&studio_unlock  &bt BT_SEL 0  &bt BT_SEL 1  &bt BT_SEL 2  &bt BT_SEL 3  &bt BT_CLR  &trans  &trans  &trans  &trans  &trans  &trans
-&trans  &out OUT_USB  &out OUT_BLE  &out OUT_TOG  &ext_power EP_ON  &ext_power EP_OFF  &trans  &trans  &trans  &trans  &trans  &trans
-&trans  &trans        &trans        &trans        &trans            &trans            &trans  &trans  &trans  &trans  &trans  &trans
-                                    &trans        &trans            &trans            &trans  &trans  &trans
+&studio_unlock  &bt BT_SEL 0  &bt BT_SEL 1  &bt BT_SEL 2  &bt BT_SEL 3  &bt BT_CLR
+    &m_copy  &m_paste  &m_cut  &m_undo  &m_redo  &m_save
+&trans  &out OUT_USB  &out OUT_BLE  &out OUT_TOG  &ext_power EP_ON  &ext_power EP_OFF
+    &m_selall  &m_find  &m_new  &m_win  &m_close  &m_desk
+&trans  &trans  &trans  &trans  &trans  &trans
+    &m_custom1  &m_custom2  &m_custom3  &trans  &trans  &trans
+                                    &trans  &trans  &trans
+    &trans  &trans  &trans
             >;
         };
 

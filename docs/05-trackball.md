@@ -10,67 +10,71 @@
 | GND | GND |
 | MOTION | не используется (часто 0 V) |
 
-Драйвер: `pat912x_poll.c` (poll I2C, без MOTION IRQ). Синий LED MCU = probe OK.
+Драйвер: `pat912x_poll.c`. Синий LED MCU = probe OK.
 
 | Файл | Роль |
 |------|------|
 | `corne_v3_right.overlay` | узел `trackball@75`, `res-x`/`res-y` |
 | `pat912x_poll.c` | init + poll |
-| `corne_v3_left.overlay` | `&trackball_listener` — скорость, оси, скролл |
-| `corne_v3.dtsi` | `trackball_split` / listener stub |
+| **`trackball_tuning.h`** | **скорость, оси, инверсии (править здесь)** |
+| `corne_v3_left.overlay` | `&trackball_listener` подключает tuning |
+| `corne_v3.dtsi` | split listener stub |
 
-## Скорость и оси (настраивать на **левой**)
+## Гибкая настройка — `trackball_tuning.h`
 
-Файл: `config/boards/shields/corne_v3/corne_v3_left.overlay`
+Файл: `config/boards/shields/corne_v3/trackball_tuning.h`  
+После правок прошейте **левую** половину.
 
-### Режим мыши (слой не RAI)
+### Скорость
 
+`MUL/DIV` — только целые. Сейчас:
+
+| Режим | Формула | Смысл |
+|-------|---------|--------|
+| Мышь | `8/5` | ×**1.6** |
+| Скролл (RAI) | `1/6` | ÷**6** |
+
+Примеры: `9/5` = ×1.8, `2/1` = ×2, `1/1` = ×1, `1/8` = ещё медленнее скролл.
+
+### Оси и инверсии
+
+Флаги (можно OR `|`):
+
+| Флаг | Эффект |
+|------|--------|
+| `INPUT_TRANSFORM_XY_SWAP` | поменять X и Y |
+| `INPUT_TRANSFORM_X_INVERT` | инвертировать X |
+| `INPUT_TRANSFORM_Y_INVERT` | инвертировать Y |
+| `0` | без трансформа |
+
+Сейчас мышь: **XY_SWAP | Y_INVERT**. Скролл: `0` (отдельные флаги в `CORNE_SCROLL_TRANSFORM`).
+
+Пример — только инверт Y без swap:
+
+```c
+#define CORNE_MOUSE_TRANSFORM (INPUT_TRANSFORM_Y_INVERT)
 ```
-input-processors
-  = <&zip_xy_transform INPUT_TRANSFORM_XY_SWAP>  /* X↔Y */
-  , <&zip_xy_scaler 3 1>                         /* ×3 быстрее */
-  ;
+
+Пример — скролл с инвертом колеса по вертикали:
+
+```c
+#define CORNE_SCROLL_TRANSFORM (INPUT_TRANSFORM_Y_INVERT)
 ```
 
-- `zip_xy_scaler MUL DIV` → скорость ×(MUL/DIV). Быстрее: `4 1`, `5 1`. Медленнее: `2 1`, `1 1`.
-- `INPUT_TRANSFORM_XY_SWAP` — поменять оси. Инверсия: `INPUT_TRANSFORM_X_INVERT` / `Y_INVERT` (можно OR битов).
+(после mapper Y → WHEEL, invert Y до mapper даёт инверт вертикального скролла.)
 
-### Режим скролла (слой **RAI** = 2)
+## Слой скролла
 
-```
-scroll {
-  layers = <2>;
-  input-processors
-    = <&zip_xy_scaler 1 4>           /* ÷4 медленнее */
-    , <&zip_xy_to_scroll_mapper>
-    ;
-};
-```
-
-Медленнее скролл: `1 6`, `1 8`. Быстрее: `1 2`, `1 1`.
-
-Слой 2 должен быть активен (hold Enter / sticky combo RAI) — см. [08-layers-combos.md](08-layers-combos.md).
+Скролл активен на слое **RAI (2)** — hold Enter или sticky-комбо 38+40. См. [08-layers-combos.md](08-layers-combos.md).
 
 ## CPI датчика (правая)
 
-В `corne_v3_right.overlay`:
-
-```
-res-x = <0xbc>;
-res-y = <0xbc>;
-```
-
-Выше значение ≈ выше «сырой» CPI (до scaler). Меняйте осторожно; тонкая подстройка удобнее через `zip_xy_scaler` на left.
-
-## Прошивка
-
-Всегда **обе** половины из одного CI zip. После смены только overlay left — достаточно перепрошить left; смена right overlay / драйвера — right.
+`res-x` / `res-y` в `corne_v3_right.overlay` (сейчас `0xbc`). Тонкая подстройка удобнее через `trackball_tuning.h`.
 
 ## Troubleshooting
 
-| Симптом | Что проверить |
-|---------|----------------|
-| Нет курсора | VCC 3.3V, `R:OK`, синий LED справа, dual-flash |
-| Слишком медленно/быстро | `zip_xy_scaler` в left overlay |
-| Оси не те | `INPUT_TRANSFORM_*` или `invert-x`/`invert-y` на trackball |
-| Скролл не тот слой | `layers = <2>` и активность RAI |
+| Симптом | Что сделать |
+|---------|-------------|
+| Нет курсора | VCC 3.3V, `R:OK`, dual-flash |
+| Скорость | `CORNE_MOUSE_SCALE_*` / `CORNE_SCROLL_SCALE_*` |
+| Оси | `CORNE_MOUSE_TRANSFORM` / `CORNE_SCROLL_TRANSFORM` |
