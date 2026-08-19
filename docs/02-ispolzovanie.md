@@ -103,8 +103,7 @@
 
 | № | Имя | Как попасть |
 |---|-----|-------------|
-| 0 | DEF | Базовый |
-| 1 | LOW | Hold Space |
+| 0 | DEF | Базовый; pos **40** = Delete |
 | 1 | LOW | Hold Space: F1–F12, Grave над F1, RGB_TOG под F1 |
 | 2 | RAI | Hold Enter **или** комбо 38+40 (sticky); Insert на pos 11 |
 | 3 | ADJ | Hold `&mo 3`; справа макросы — [12-macros.md](12-macros.md) |
@@ -205,11 +204,10 @@ MOTION на модуле можно не подключать (часто зал
 
 ### Трекбол: скорость / оси
 
-Подробно: [05-trackball.md](05-trackball.md). Сейчас в `corne_v3_left.overlay`: мышь **×3** + XY swap; скролл на RAI **÷4**.
+Подробно: [05-trackball.md](05-trackball.md). Настройки в `trackball_tuning.h`: мышь **×1.6** + XY swap + Y invert; скролл на RAI **÷6**.
 
-- Быстрее/медленнее мышь — `zip_xy_scaler MUL DIV` в базовых processors.
-- Скролл — scaler внутри `scroll { ... }`.
-- Оси — `INPUT_TRANSFORM_XY_SWAP` / invert.
+- Скорость — `CORNE_MOUSE_SCALE_*` / `CORNE_SCROLL_SCALE_*`.
+- Оси — `CORNE_MOUSE_TRANSFORM` / `CORNE_SCROLL_TRANSFORM`.
 ---
 
 ## 9. Чеклист «всё живое»
