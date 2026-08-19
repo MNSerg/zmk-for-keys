@@ -4,10 +4,13 @@
 
 ## Документация
 
+Каталог **[docs/](docs/README.md)** — отдельные инструкции по idle, RGB, трекболу, OLED, слоям, сборке и т.д.
+
 | Документ | Содержание |
 |----------|------------|
-| [docs/01-nastrojka.md](docs/01-nastrojka.md) | Где и что настраивается в файлах репозитория |
-| [docs/02-ispolzovanie.md](docs/02-ispolzovanie.md) | Прошивка, ПК, OLED (`R:OK` / слой), слои, софт |
+| [docs/README.md](docs/README.md) | Оглавление |
+| [docs/01-nastrojka.md](docs/01-nastrojka.md) | Карта файлов репозитория |
+| [docs/02-ispolzovanie.md](docs/02-ispolzovanie.md) | Прошивка и использование |
 
 ## Быстрый старт
 

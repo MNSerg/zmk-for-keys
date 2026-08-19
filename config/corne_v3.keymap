@@ -110,6 +110,17 @@
             key-positions = <36 41>;
             timeout-ms = <120>;
         };
+
+        /*
+         * RAI (arrows/nav + trackball scroll): sticky toggle like CFG.
+         * Momentary still via &lt 2 ENTER / &ltq 2 BACKSPACE.
+         * Combo: Enter thumb (38) + raise-Backspace thumb (40).
+         */
+        rai_combo {
+            bindings = <&tog 2>;
+            key-positions = <38 40>;
+            timeout-ms = <120>;
+        };
     };
 
     keymap {
@@ -137,7 +148,8 @@
 
         raise_layer {
             display-name = "RAI";
-            /* Trackball scrolls while this layer is held (see corne_v3_left.overlay) */
+            /* Hold Enter/ltq-Bksp = momentary; combo 38+40 = sticky toggle (like CFG).
+             * Trackball scrolls on this layer (corne_v3_left.overlay). */
             bindings = <
 &trans  &kp ESC     &kp KP_NUMBER_7  &kp KP_NUMBER_8  &kp KP_NUMBER_9  &kp KP_NUMBER_0  &kp HOME  &trans    &kp UP    &trans     &trans  &trans
 &trans  &kp CAPS    &kp KP_NUMBER_4  &kp KP_NUMBER_5  &kp KP_NUMBER_6  &kp AT           &kp END   &kp LEFT  &kp DOWN  &kp RIGHT  &trans  &trans

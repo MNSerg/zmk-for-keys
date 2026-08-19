@@ -2,7 +2,9 @@
 
 Подробная карта файлов репозитория: **что за что отвечает** и **куда править**, чтобы изменить поведение клавиатуры.
 
-Связанный документ: [Использование клавиатуры](02-ispolzovanie.md).
+Связанные документы: [использование](02-ispolzovanie.md), [оглавление docs](README.md).
+
+Подробно по узлам: [idle](03-idle-sleep.md) · [RGB](04-rgb.md) · [трекбол](05-trackball.md) · [OLED](06-oled.md) · [batt_bar](07-battery-bar.md) · [слои](08-layers-combos.md) · [BLE](09-split-ble.md) · [сборка](10-build-flash.md) · [питание](11-power.md).
 
 ---
 
@@ -71,8 +73,8 @@ zmk-for-keys/
 | I2C OLED/трекбол (D2/D3) | `corne_v3.dtsi` | `&pinctrl` i2c0, `&pro_micro_i2c` |
 | OLED 128×32 addr 0x3C | `corne_v3.dtsi` | `oled: ssd1306@3c` (left всегда; right — опционально) |
 | PAT912x (poll) | `corne_v3_right.overlay` + `pat912x_poll.c` | D2/D3 I2C, MOTION D8 optional, addr 0x75/73/79 |
-| Масштаб трекбола ÷2 | `corne_v3_left.overlay` | `zip_xy_scaler 1 2` |
-| Скролл трекбола на слое 2 | `corne_v3_left.overlay` | `scroll { layers = <2>; ... }` |
+| Масштаб/оси мыши | `corne_v3_left.overlay` | `zip_xy_transform` XY_SWAP + `zip_xy_scaler 3 1` |
+| Скролл трекбола на слое 2 | `corne_v3_left.overlay` | `scroll { … scaler 1 4 + xy_to_scroll }` |
 
 Меняете пин → правьте **overlay/dtsi**, не только `pinout nicenano.txt` (тот файл — справочник).
 
@@ -86,7 +88,7 @@ zmk-for-keys/
 | `CONFIG_ZMK_USB` / `CONFIG_ZMK_BLE` | Транспорты к ПК |
 | `CONFIG_ZMK_IDLE_TIMEOUT` | Idle (сейчас **10 с** → гаснет RGB/OLED) |
 | `CONFIG_ZMK_SLEEP` / `IDLE_SLEEP_TIMEOUT` | Глубокий сон через **60 мин** бездействия |
-| `&st_sync` `ACTIVE` | Левая ACTIVE → poke idle-таймера **только на правой** (без сброса idle слева) |
+| `&st_sync` ACTIVE + RGB dim | Левая IDLE → правая гасит RGB сразу; poke idle только на правой |
 | `CONFIG_ZMK_STUDIO` | ZMK Studio (только left + snippet в `build.yaml`) |
 
 Боковые файлы:
