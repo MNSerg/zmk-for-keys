@@ -27,7 +27,7 @@
 &trackball_listener {
 	status = "okay";
 	/* pinout SCALE_DIVISOR = 2 */
-	input-processors = <&zip_xy_scaler 1 2>;
+	input-processors = <&zip_xy_scaler 1 1>;
 
 	/* Layer 2 (raise / RAI): trackball scrolls */
 	scroll {
